@@ -445,7 +445,7 @@ function buildAnnual(){
   let rows='';
   G.yearData.forEach(d=>{
     const c=d.age===65?'a65':d.age===75?'a75':'';
-    const pi=d.age>=65&&d.age<65+G.penYrs?ff(d.ann+G.pub):(d.age>=65?fmt(G.pub):'—');
+    const pi=d.age>=65&&d.age<65+G.penYrs?ff(d.dca+G.pub):(d.age>=65?fmt(G.pub):'—');
     rows+=`<tr class="${c}"><td>${d.age}歳${d.age===65?' ★':''}</td><td>${pi}</td><td>${ff(d.soc.t)}</td><td>${ff(d.tIT||0)}</td><td>${ff(d.it||0)}</td><td>${ff(d.jt||0)}</td><td>${fmt(d.totalTax)}</td></tr>`;
   });
   document.getElementById('r-an').innerHTML=`
