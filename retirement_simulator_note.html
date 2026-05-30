@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>60歳定年後の退職金・DC受け取り方 完全節税シミュレーター</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;700&family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:#1a1410;--ink2:#3d3530;--ink3:#6b5e57;--ink4:#9c8f89;
+  --paper:#faf7f2;--paper2:#f2ede4;--paper3:#e8e0d4;
+  --accent:#b5451b;--accent2:#e8714a;--alight:#fdf0eb;
+  --green:#1a6b4a;--glight:#e8f5ee;
+  --blue:#1a3f6b;--blight:#e8f0f8;
+  --gold:#c4882a;--gdlight:#fdf3e0;
+  --border:rgba(26,20,16,0.12);
+  --serif:'Noto Serif JP',serif;
+  --sans:'Noto Sans JP',sans-serif;
+  --mono:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--paper);color:var(--ink);line-height:1.75;font-size:15px}
+
+/* HERO */
+.hero{background:var(--ink);color:var(--paper);padding:80px 24px 64px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(-45deg,transparent,transparent 40px,rgba(255,255,255,0.015) 40px,rgba(255,255,255,0.015) 41px)}
+.hero-label{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent2);margin-bottom:20px}
+.hero h1{font-family:var(--serif);font-size:clamp(22px,5vw,40px);font-weight:700;line-height:1.35;margin-bottom:20px;position:relative}
+.hero h1 em{font-style:normal;color:var(--accent2)}
+.hero-sub{font-size:14px;color:rgba(250,247,242,.65);max-width:560px;margin:0 auto 32px;line-height:1.8}
+.hero-badges{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.hero-badge{background:rgba(255,255,255,.08);border:.5px solid rgba(255,255,255,.15);border-radius:4px;padding:5px 12px;font-size:11px;color:rgba(250,247,242,.8);font-family:var(--mono)}
+
+/* LAYOUT */
+.article{max-width:760px;margin:0 auto;padding:0 24px}
+.sec-block{margin:56px 0}
+.sec-num{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.15em;margin-bottom:8px}
+.sec-title{font-family:var(--serif);font-size:clamp(19px,3.5vw,27px);font-weight:700;color:var(--ink);line-height:1.4;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid var(--ink)}
+.sec-title span{color:var(--accent)}
+p{margin-bottom:1em;color:var(--ink2)}
+
+.key-pt{background:var(--gdlight);border-left:3px solid var(--gold);padding:14px 18px;margin:22px 0;border-radius:0 6px 6px 0;font-size:14px}
+.warn-pt{background:var(--alight);border-left:3px solid var(--accent);padding:14px 18px;margin:22px 0;border-radius:0 6px 6px 0;font-size:13px;color:var(--ink2)}
+
+.fm-box{background:var(--ink);color:var(--paper);border-radius:8px;padding:22px 26px;margin:22px 0;font-family:var(--mono);font-size:13px;line-height:2}
+.fm-box .flab{color:var(--accent2);font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.fm-box .fres{color:var(--accent2);font-size:14px;font-weight:500;margin-top:6px}
+
+.ctable{width:100%;border-collapse:collapse;margin:22px 0;font-size:13px}
+.ctable th{background:var(--ink2);color:var(--paper);padding:9px 13px;text-align:left;font-weight:500;font-size:11px}
+.ctable td{padding:9px 13px;border-bottom:.5px solid var(--border);vertical-align:top}
+.ctable tr:nth-child(even) td{background:var(--paper2)}
+.ctable td.r{text-align:right;font-family:var(--mono)}
+
+.steps{margin:22px 0}
+.step{display:flex;gap:14px;margin-bottom:18px;align-items:flex-start}
+.stn{background:var(--accent);color:#fff;border-radius:50%;width:26px;height:26px;min-width:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin-top:2px}
+.stb h4{font-family:var(--serif);font-size:14px;font-weight:600;color:var(--ink);margin-bottom:3px}
+.stb p{font-size:13px;margin:0}
+.stfm{font-family:var(--mono);font-size:11px;background:var(--paper2);border:.5px solid var(--border);border-radius:4px;padding:5px 9px;margin-top:5px;color:var(--ink2);line-height:1.7}
+
+.divider{border:none;border-top:1px solid var(--border);margin:44px 0}
+.div-orn{text-align:center;color:var(--ink4);font-size:16px;margin:36px 0;letter-spacing:.4em}
+
+/* SIMULATOR */
+.sim-wrap{background:var(--ink);margin:56px -24px;padding:56px 24px}
+.sim-inner{max-width:760px;margin:0 auto}
+.sim-hdr{text-align:center;margin-bottom:36px}
+.sim-hdr .slab{font-family:var(--mono);font-size:11px;color:var(--accent2);letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px}
+.sim-hdr h2{font-family:var(--serif);font-size:clamp(19px,4vw,28px);color:var(--paper);font-weight:700;line-height:1.4}
+.sim-hdr p{font-size:13px;color:rgba(250,247,242,.55);margin-top:8px}
+
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px}
+.tab{padding:6px 14px;border:.5px solid rgba(255,255,255,.15);border-radius:4px;font-size:12px;cursor:pointer;background:transparent;color:rgba(250,247,242,.55);font-family:var(--sans);transition:all .2s}
+.tab:hover{color:var(--paper);border-color:rgba(255,255,255,.3)}
+.tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+.panel{display:none}.panel.active{display:block}
+
+.igrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+@media(max-width:540px){.igrid{grid-template-columns:1fr}}
+.ibox{background:rgba(255,255,255,.06);border:.5px solid rgba(255,255,255,.12);border-radius:8px;padding:16px 18px}
+.ibox-title{font-size:10px;font-family:var(--mono);color:var(--accent2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
+.irow{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;gap:10px}
+.irow:last-child{margin-bottom:0}
+.irow label{font-size:12px;color:rgba(250,247,242,.7);flex:1;line-height:1.4}
+.irow input[type=number]{width:95px;padding:4px 8px;background:rgba(255,255,255,.1);border:.5px solid rgba(255,255,255,.2);border-radius:4px;color:var(--paper);font-family:var(--mono);font-size:13px;text-align:right}
+.irow input[type=number]:focus{outline:none;border-color:var(--accent2)}
+.irow .unit{font-size:11px;color:rgba(250,247,242,.4);min-width:20px}
+
+.calc-btn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;font-family:var(--serif);cursor:pointer;transition:background .2s;margin-top:6px;letter-spacing:.05em}
+.calc-btn:hover{background:#a03d18}
+
+.rgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:9px;margin-bottom:18px}
+.rc{background:rgba(255,255,255,.06);border:.5px solid rgba(255,255,255,.1);border-radius:6px;padding:11px 13px}
+.rc.hi{border-color:var(--accent2);background:rgba(232,113,74,.12)}
+.rc.go{border-color:#4aad82;background:rgba(26,107,74,.15)}
+.rl{font-size:10px;color:rgba(250,247,242,.5);margin-bottom:2px;line-height:1.4;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em}
+.rv{font-size:17px;font-weight:700;font-family:var(--mono);color:var(--paper)}
+.rv.g{color:#4aad82}.rv.b{color:var(--accent2)}.rv.i{color:#6fa8dc}
+
+.rt{width:100%;border-collapse:collapse;font-size:12px}
+.rt th{padding:6px 9px;text-align:left;color:rgba(250,247,242,.5);border-bottom:.5px solid rgba(255,255,255,.1);font-weight:400;font-size:10px}
+.rt td{padding:5px 9px;border-bottom:.5px solid rgba(255,255,255,.06);color:rgba(250,247,242,.82)}
+.rt td.r{text-align:right;font-family:var(--mono)}
+.rt tr.tot td{font-weight:700;border-top:1px solid rgba(255,255,255,.14);border-bottom:none;padding-top:8px;color:var(--paper)}
+.rt tr.hl td{background:rgba(26,107,74,.18);color:#7dd4a8}
+
+.rb{background:rgba(255,255,255,.04);border:.5px solid rgba(255,255,255,.1);border-radius:8px;padding:14px 16px;margin-bottom:12px}
+.rb-title{font-size:10px;font-family:var(--mono);color:var(--accent2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px}
+
+.inote{background:rgba(107,163,220,.1);border:.5px solid rgba(107,163,220,.25);border-radius:6px;padding:10px 14px;font-size:12px;color:rgba(250,247,242,.7);margin-bottom:12px;line-height:1.7}
+.wnote{background:rgba(196,136,42,.12);border:.5px solid rgba(196,136,42,.3);border-radius:6px;padding:10px 14px;font-size:12px;color:rgba(250,247,242,.7);margin-bottom:12px;line-height:1.7}
+
+.chart-wrap{position:relative;height:260px;margin:14px 0}
+
+.atscroll{overflow-x:auto}
+.atable{width:100%;border-collapse:collapse;font-size:11px;min-width:580px}
+.atable th{padding:5px 8px;background:rgba(255,255,255,.07);color:rgba(250,247,242,.55);border-bottom:.5px solid rgba(255,255,255,.1);font-weight:400;text-align:right;font-family:var(--mono);font-size:10px}
+.atable th:first-child{text-align:left}
+.atable td{padding:4px 8px;border-bottom:.5px solid rgba(255,255,255,.05);color:rgba(250,247,242,.78);text-align:right;font-family:var(--mono)}
+.atable td:first-child{text-align:left;color:var(--paper);font-weight:500}
+.atable tr.a65 td{background:rgba(232,113,74,.12)}
+.atable tr.a75 td{background:rgba(107,163,220,.08)}
+
+/* FOOTER */
+.footer{background:var(--ink);color:rgba(250,247,242,.4);text-align:center;padding:36px 24px;font-size:12px;line-height:2}
+.footer strong{color:rgba(250,247,242,.7)}
+
+.disclaimer{background:var(--paper2);border:1px solid var(--border);border-radius:8px;padding:18px 22px;margin:36px 0;font-size:12px;color:var(--ink3);line-height:1.8}
+.disclaimer strong{color:var(--ink2)}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-label">定年退職の税金対策 完全ガイド</div>
+  <h1>退職金・企業型DCの<br>受け取り方で<em>税金が大きく変わる</em></h1>
+  <p class="hero-sub">所得税法施行令第70条の「みなし勤続年数」ルール・退職所得控除・公的年金控除を正確に計算。あなたの数値を入力して最適な受取戦略を導き出します。</p>
+  <div class="hero-badges">
+    <span class="hero-badge">19年ルール対応</span>
+    <span class="hero-badge">基礎控除反映</span>
+    <span class="hero-badge">社会保険料控除</span>
+    <span class="hero-badge">医療費控除</span>
+    <span class="hero-badge">配偶者控除</span>
+    <span class="hero-badge">生涯税額 60〜90歳</span>
+  </div>
+</div>
+
+<div class="article">
+  <div class="sec-block">
+    <div class="sec-num">— 01</div>
+    <h2 class="sec-title">退職金とDCを<span>同じ年に受け取る</span>と損をする</h2>
+    <p>60歳定年時に退職金と企業型DC（確定拠出年金）の一時金を同時に受け取ると、退職所得控除が合算で1回しか使えません。これは大きな落とし穴です。</p>
+    <p>一方、退職金を60歳に受け取り、DCを65歳まで指図者として運用継続してから受け取ると、<strong>DCに対して別途、退職所得控除が適用</strong>されます。ただし両者の間に「19年ルール」という重複排除の調整が入ります。</p>
+    <div class="key-pt"><strong>ポイント：</strong>退職金とDCのタイミングを分離するだけで受け取り税負担が変わります。ただし自動的に有利になるわけではなく、「19年ルール」の正確な計算が不可欠です。</div>
+  </div>
+  <hr class="divider">
+
+  <div class="sec-block">
+    <div class="sec-num">— 02</div>
+    <h2 class="sec-title">退職所得控除の<span>正確な計算方法</span></h2>
+    <p>退職所得控除額は勤続年数によって決まります。20年を超える部分は<strong>1年あたり70万円</strong>が加算されます（20年以下は40万円）。</p>
+    <div class="fm-box">
+      <div class="flab">退職所得控除額の計算式</div>
+      20年以下：40万円 × 勤続年数（最低80万円）<br>
+      20年超　：800万円 ＋ <strong style="color:#e8714a">70万円 × （勤続年数 − 20年）</strong>
+      <div class="fres">例）勤続36年 → 800 + 70×16 = 1,920万円<br>例）勤続41年 → 800 + 70×21 = 2,270万円（5年延長で+350万円）</div>
+    </div>
+    <p>課税退職所得は「（受取額 − 控除額）÷ 2」で計算されます。÷2があるため実効税率は所得税速算表の半分程度になります。</p>
+  </div>
+  <hr class="divider">
+
+  <div class="sec-block">
+    <div class="sec-num">— 03</div>
+    <h2 class="sec-title">知らないと損する<span>「19年ルール」</span></h2>
+    <p>退職金を受け取ってから19年以内に企業型DCの一時金を受け取る場合、DCの退職所得控除から「みなし勤続年数に対応する控除額」が差し引かれます（所得税法施行令第70条）。</p>
+    <div class="steps">
+      <div class="step">
+        <div class="stn">1</div>
+        <div class="stb">
+          <h4>みなし勤続年数を逆算する</h4>
+          <p>退職金額から仮想の勤続年数を計算します。</p>
+          <div class="stfm">退職金 ≤ 800万円：みなし年数 = 退職金 ÷ 40万（端数切捨）<br>退職金 ＞ 800万円：みなし年数 = (退職金−800万) ÷ 70万 + 20年（端数切捨）</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="stn">2</div>
+        <div class="stb">
+          <h4>重複排除額を計算する</h4>
+          <p>みなし勤続年数に対応する控除額を差し引きます。</p>
+          <div class="stfm">DC実質控除 = DC控除（受取時勤続年数分）− みなし年数分の控除額</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="stn">3</div>
+        <div class="stb">
+          <h4>DC一時金の課税退職所得を計算する</h4>
+          <div class="stfm">課税退職所得 = (DC受取額 − DC実質控除) ÷ 2</div>
+        </div>
+      </div>
+    </div>
+    <div class="warn-pt">⚠️ DC一時金受取時の「退職所得の受給に関する申告書」C欄に退職金情報を必ず記入してください。記入漏れで過大な源泉徴収が発生します。</div>
+  </div>
+  <hr class="divider">
+
+  <div class="sec-block">
+    <div class="sec-num">— 04</div>
+    <h2 class="sec-title">DC年金と公的年金の<span>合算課税</span></h2>
+    <p>企業型DCを年金形式で受け取ると、公的年金と<strong>合算</strong>して「公的年金等控除」が適用されます。収入合計が増えると控除率が下がるため、年金額が多いほど節税効果は小さくなります。</p>
+    <table class="ctable">
+      <tr><th>合算年金収入（65歳以上）</th><th>公的年金等控除額</th></tr>
+      <tr><td>330万円未満</td><td class="r">110万円（一律）</td></tr>
+      <tr><td>330〜410万円未満</td><td class="r">収入 × 25% ＋ 27.5万円</td></tr>
+      <tr><td>410〜770万円未満</td><td class="r">収入 × 15% ＋ 68.5万円</td></tr>
+      <tr><td>770〜1,000万円未満</td><td class="r">収入 × 5% ＋ 145.5万円</td></tr>
+      <tr><td>1,000万円以上</td><td class="r">195.5万円（上限）</td></tr>
+    </table>
+    <p>年金の課税所得（雑所得）は「合算収入 − 公的年金等控除 − 基礎控除 − 社会保険料控除 − 医療費控除」となります。これらを差し引くと実際の課税所得はかなり圧縮されます。</p>
+  </div>
+  <div class="div-orn">◆ ◆ ◆</div>
+</div>
+
+<!-- SIMULATOR -->
+<div class="sim-wrap">
+<div class="sim-inner">
+  <div class="sim-hdr">
+    <div class="slab">Interactive Calculator</div>
+    <h2>退職金・DC 節税シミュレーター</h2>
+    <p>あなたの数値を入力して「計算する」を押してください。デフォルト値は一般的な参考例です。</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('ti')">① 入力</button>
+    <button class="tab" onclick="showTab('td')">② DC受取計算</button>
+    <button class="tab" onclick="showTab('ta')">③ 年齢別税額</button>
+    <button class="tab" onclick="showTab('tl')">④ 生涯サマリー</button>
+    <button class="tab" onclick="showTab('tc')">⑤ グラフ</button>
+  </div>
+
+  <div id="ti" class="panel active">
+    <div class="igrid">
+      <div class="ibox">
+        <div class="ibox-title">退職・DC基本情報</div>
+        <div class="irow"><label>退職金（万円・60歳受取）</label><input type="number" id="i-ret" value="1000"><span class="unit">万円</span></div>
+        <div class="irow"><label>勤続年数</label><input type="number" id="i-yrs" value="35"><span class="unit">年</span></div>
+        <div class="irow"><label>DC積立残高</label><input type="number" id="i-dc" value="3000"><span class="unit">万円</span></div>
+        <div class="irow"><label>DC受取時の勤続年数<br><small style="opacity:.6">iDeCo延長後の合計年数</small></label><input type="number" id="i-dcyrs" value="40"><span class="unit">年</span></div>
+        <div class="irow"><label>DC一時金（0＝自動最適化）</label><input type="number" id="i-lump" value="0"><span class="unit">万円</span></div>
+        <div class="irow"><label>DC年金受取期間</label><input type="number" id="i-pyrs" value="10"><span class="unit">年</span></div>
+      </div>
+      <div class="ibox">
+        <div class="ibox-title">収入・年金</div>
+        <div class="irow"><label>公的年金・本人（65歳〜）</label><input type="number" id="i-pub" value="200"><span class="unit">万円/年</span></div>
+        <div class="irow"><label>失業給付（非課税）</label><input type="number" id="i-unemp" value="80"><span class="unit">万円</span></div>
+        <div class="irow"><label>配偶者給与（〜64歳）</label><input type="number" id="i-sp-sal" value="100"><span class="unit">万円/年</span></div>
+        <div class="irow"><label>配偶者の公的年金（65歳〜）</label><input type="number" id="i-sp-pen" value="0"><span class="unit">万円/年</span></div>
+        <div class="irow"><label>配偶者の給与（65歳〜）</label><input type="number" id="i-sp-sal65" value="0"><span class="unit">万円/年</span></div>
+        <div class="irow"><label>想定死亡年齢</label><input type="number" id="i-end" value="90"><span class="unit">歳</span></div>
+      </div>
+      <div class="ibox">
+        <div class="ibox-title">社会保険料（月額・円）</div>
+        <div class="irow"><label>任意継続健保（60〜61歳）</label><input type="number" id="i-h1" value="30000"><span class="unit">円/月</span></div>
+        <div class="irow"><label>国民健康保険（62〜64歳）</label><input type="number" id="i-h2" value="11275"><span class="unit">円/月</span></div>
+        <div class="irow"><label>国民年金任意加入（60〜64歳）</label><input type="number" id="i-nen" value="16980"><span class="unit">円/月</span></div>
+        <div class="irow"><label>退職後健保（65〜74歳）</label><input type="number" id="i-h3" value="25000"><span class="unit">円/月</span></div>
+        <div class="irow"><label>後期高齢者医療（75歳〜）</label><input type="number" id="i-h4" value="12000"><span class="unit">円/月</span></div>
+      </div>
+      <div class="ibox">
+        <div class="ibox-title">各種控除（年額・万円）</div>
+        <div class="irow"><label>医療費控除<br><small style="opacity:.6">実費−10万円の金額</small></label><input type="number" id="i-med" value="5"><span class="unit">万円/年</span></div>
+        <div class="irow"><label>生命保険料控除</label><input type="number" id="i-life" value="0"><span class="unit">万円/年</span></div>
+        <div class="irow"><label>地震保険料控除</label><input type="number" id="i-quake" value="0"><span class="unit">万円/年</span></div>
+        <div class="irow"><label>その他控除</label><input type="number" id="i-other" value="0"><span class="unit">万円/年</span></div>
+      </div>
+    </div>
+    <button class="calc-btn" onclick="calcAll()">計算する →</button>
+    <div id="c-prev" style="margin-top:12px"></div>
+  </div>
+
+  <div id="td" class="panel"><div id="r-dc"></div></div>
+  <div id="ta" class="panel"><div id="r-an"></div></div>
+  <div id="tl" class="panel"><div id="r-li"></div></div>
+  <div id="tc" class="panel">
+    <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
+    <div class="chart-wrap" style="height:200px"><canvas id="taxChart"></canvas></div>
+  </div>
+</div>
+</div>
+
+<div class="article">
+  <div class="sec-block">
+    <div class="sec-num">— 05</div>
+    <h2 class="sec-title">年金受取期間は<span>10年と20年</span>どちらが有利か</h2>
+    <p>DC年金を長く受け取ると年間受取額が減り公的年金等控除が有利に働きます。しかし受取期間終了後は公的年金のみとなり税負担が急減します。この「終了後の低税期間の長さ」が生涯税額を左右します。</p>
+    <div class="key-pt"><strong>一般的な傾向：</strong>年金期間中は20年プランの方が毎年の税負担が低くなりますが、75歳以降の低税期間を考慮した生涯税額（65〜90歳）は10年プランが有利になるケースが多くなります。シミュレーターで「③年齢別税額」タブを確認してください。</div>
+  </div>
+  <div class="disclaimer">
+    <strong>免責事項</strong><br>
+    本シミュレーターは一般的な情報提供を目的としており、個別の税務アドバイスではありません。実際の税額は個人の状況・税制改正・自治体の料率変更等により異なります。重要な財務判断の前には必ず税理士・ファイナンシャルプランナー等の専門家にご相談ください。
+  </div>
+</div>
+
+<div class="footer">
+  <strong>退職金・DC節税シミュレーター</strong><br>
+  所得税法施行令第70条（みなし勤続年数）・退職所得控除・公的年金等控除・基礎控除・社会保険料控除・医療費控除を反映<br>
+  本ツールは情報提供のみを目的としています。税務判断は専門家にご相談ください。
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const fmt=n=>Math.round(n).toLocaleString('ja-JP');
+const ff=n=>(Math.round(n*10)/10).toLocaleString('ja-JP');
+const gi=id=>parseFloat(document.getElementById(id).value)||0;
+function itax(t){if(t<=0)return 0;const b=[[195,5,0],[330,10,9.75],[695,20,42.75],[900,23,63.6],[1800,33,153.6],[4000,40,279.6],[Infinity,45,479.6]];for(let r of b)if(t<=r[0])return Math.max(0,t*r[1]/100-r[2]);return 0;}
+function jtax(t){return t>0?Math.max(0,t*0.1+0.5):0;}
+function rCtrl(y){return y<=20?Math.max(80,40*y):800+70*(y-20);}
+function mimashi(ret){if(ret<=800)return Math.floor(ret/40);return Math.floor((ret-800)/70)+20;}
+function pCtrl65(tot){if(tot<=0)return 0;if(tot<330)return 110;if(tot<410)return tot*0.25+27.5;if(tot<770)return tot*0.15+68.5;if(tot<1000)return tot*0.05+145.5;return 195.5;}
+function salCtrl(s){if(s<=55)return 55;if(s<=180)return s*0.4-10;if(s<=360)return s*0.3+8;if(s<=660)return s*0.2+44;if(s<=850)return s*0.1+110;return 195;}
+
+function socPrem(age){
+  const h1=gi('i-h1')*12/10000,h2=gi('i-h2')*12/10000,nen=gi('i-nen')*12/10000,h3=gi('i-h3')*12/10000,h4=gi('i-h4')*12/10000;
+  if(age<=61)return{h:h1,n:nen,t:h1+nen};
+  if(age<=64)return{h:h2,n:nen,t:h2+nen};
+  if(age<=74)return{h:h3,n:0,t:h3};
+  return{h:h4,n:0,t:h4};
+}
+
+function annTax(age,dcAnn,pub,med,life,quake,other,spPen,spSal65){
+  const s=socPrem(age);
+  let penInc=0,sdIT=0,sdJT=0;
+  if(age>=65){const tot=dcAnn+pub;penInc=Math.max(0,tot-pCtrl65(tot));}
+  const bdIT=48+s.t+med+life+quake+other;
+  const bdJT=43+s.t+med+life+quake+other;
+  if(age>=65){
+    const spI=spSal65>0?Math.max(0,spSal65-salCtrl(spSal65)):(spPen>0?Math.max(0,spPen-pCtrl65(spPen)):0);
+    if(spI<=38){sdIT=38;sdJT=33;}else if(spI<=76){sdIT=26;sdJT=22;}
+  }
+  const tIT=Math.max(0,penInc-bdIT-sdIT);
+  const tJT=Math.max(0,penInc-bdJT-sdJT);
+  const it=itax(tIT)*1.021,jt=jtax(tJT);
+  return{penInc,tIT,tJT,it,jt,total:it+jt,soc:s,sdIT};
+}
+
+function findBest(dc,dcCtrl,penYrs,pub,med,life,quake,other,spPen,spSal65,endAge){
+  let best={lump:dc,total:Infinity,lumpTax:0,taxableL:0};
+  for(let l=0;l<=dc;l+=100){
+    const ann=(dc-l)/penYrs;
+    const tl=Math.max(0,(l-dcCtrl)/2);
+    const lt=itax(tl)*1.021+tl*0.1;
+    let at=0;
+    for(let age=65;age<=endAge;age++)at+=annTax(age,(age<65+penYrs?ann:0),pub,med,life,quake,other,spPen,spSal65).total;
+    if(lt+at<best.total)best={lump:l,total:lt+at,lumpTax:lt,taxableL:tl};
+  }
+  return best;
+}
+
+let G={},myC=null,txC=null;
+
+function calcAll(){
+  const ret=gi('i-ret'),yrs=gi('i-yrs'),dc=gi('i-dc'),dcyrs=gi('i-dcyrs');
+  const lumpIn=gi('i-lump'),penYrs=gi('i-pyrs'),pub=gi('i-pub');
+  const spSal=gi('i-sp-sal'),spPen=gi('i-sp-pen'),spSal65=gi('i-sp-sal65');
+  const med=gi('i-med'),life=gi('i-life'),quake=gi('i-quake'),other=gi('i-other');
+  const endAge=gi('i-end')||90;
+
+  const dcCtrlFull=rCtrl(dcyrs);
+  const mYrs=mimashi(ret);
+  const mCtrl=rCtrl(mYrs);
+  const dcCtrl=Math.max(0,dcCtrlFull-mCtrl);
+  const rc36=rCtrl(yrs);
+  const retTaxable=Math.max(0,(ret-rc36)/2);
+  const retTax=itax(retTaxable)*1.021+retTaxable*0.1;
+
+  const best=lumpIn>0
+    ?{lump:lumpIn,lumpTax:(t=>{const tl=Math.max(0,(t-dcCtrl)/2);return itax(tl)*1.021+tl*0.1;})(lumpIn),taxableL:Math.max(0,(lumpIn-dcCtrl)/2)}
+    :findBest(dc,dcCtrl,penYrs,pub,med,life,quake,other,spPen,spSal65,endAge);
+
+  const lump=best.lump,lumpTax=best.lumpTax,ann=(dc-lump)/penYrs;
+  const ages=[];for(let a=60;a<=endAge;a++)ages.push(a);
+
+  const yd=ages.map(age=>{
+    const dca=(age>=65&&age<65+penYrs)?ann:0;
+    const r=annTax(age,dca,pub,med,life,quake,other,spPen,spSal65);
+    let tot=r.total;
+    if(age===60)tot+=retTax;
+    if(age===65)tot+=lumpTax;
+    const myInc=age>=65&&age<65+penYrs?ann+pub:(age>=65?pub:(age===60?gi('i-unemp'):0));
+    return{...r,age,dca,totalTax:tot,myInc,spInc:age<65?spSal:(spSal65+spPen),retTax:age===60?retTax:0,lumpTax:age===65?lumpTax:0};
+  });
+
+  G={ret,yrs,dc,dcyrs,dcCtrlFull,mYrs,mCtrl,dcCtrl,rc36,retTaxable,retTax,lump,lumpTax,ann,penYrs,pub,spSal,spPen,spSal65,med,life,quake,other,yearData:yd,endAge,
+    lifeTax:yd.reduce((s,d)=>s+d.totalTax,0),lifeSoc:yd.reduce((s,d)=>s+d.soc.t,0)};
+
+  document.getElementById('c-prev').innerHTML=`<div class="inote">✓ 計算完了｜最適一時金 <strong style="color:#e8714a">${fmt(lump)}万円</strong>、年金 <strong>${ff(ann)}万円/年×${penYrs}年</strong>、DC控除（19年ルール後）<strong>${fmt(dcCtrl)}万円</strong><br>各タブで詳細をご確認ください。</div>`;
+
+  buildDC(); buildAnnual(); buildLifetime();
+  if(document.getElementById('tc').classList.contains('active'))buildCharts();
+}
+
+function buildDC(){
+  const d=G,r65=d.yearData.find(x=>x.age===65)||{};
+  const pc=pCtrl65(d.ann+d.pub);
+  document.getElementById('r-dc').innerHTML=`
+    <div class="inote">退職所得（一時金）は分離課税のため年金所得とは独立して計算されます。</div>
+    <div class="rgrid">
+      <div class="rc"><div class="rl">退職金税額(60歳)</div><div class="rv ${d.retTax===0?'g':'b'}">${fmt(d.retTax)}万円</div></div>
+      <div class="rc hi"><div class="rl">DC控除(19年ルール後)</div><div class="rv i">${fmt(d.dcCtrl)}万円</div></div>
+      <div class="rc"><div class="rl">DC一時金税額(65歳)</div><div class="rv b">${fmt(d.lumpTax)}万円</div></div>
+      <div class="rc go"><div class="rl">65歳 年金税額/年</div><div class="rv g">${ff(r65.total||0)}万円</div></div>
+    </div>
+    <div class="rb"><div class="rb-title">19年ルールの計算根拠</div>
+    <table class="rt">
+      <tr><td>退職金</td><td class="r">${fmt(d.ret)}万円</td></tr>
+      <tr><td>みなし勤続年数</td><td class="r">${d.mYrs}年</td></tr>
+      <tr><td>差し引く控除額</td><td class="r">${fmt(d.mCtrl)}万円</td></tr>
+      <tr><td>DC勤続年数ベース控除（${d.dcyrs}年）</td><td class="r">${fmt(d.dcCtrlFull)}万円</td></tr>
+      <tr class="tot"><td>DC実質退職所得控除</td><td class="r" style="color:#6fa8dc">${fmt(d.dcCtrl)}万円</td></tr>
+    </table></div>
+    <div class="rb"><div class="rb-title">DC一時金の退職所得計算</div>
+    <table class="rt">
+      <tr><td>DC受取（一時金）</td><td class="r">${fmt(d.lump)}万円</td></tr>
+      <tr><td>DC退職所得控除</td><td class="r">${fmt(d.dcCtrl)}万円</td></tr>
+      <tr><td>課税退職所得（÷2後）</td><td class="r">${fmt(Math.max(0,(d.lump-d.dcCtrl)/2))}万円</td></tr>
+      <tr class="tot"><td>一時金税額</td><td class="r" style="color:#e8714a">${fmt(d.lumpTax)}万円</td></tr>
+    </table></div>
+    <div class="rb"><div class="rb-title">65歳 年金所得の計算</div>
+    <table class="rt">
+      <tr><td>DC年金/年</td><td class="r">${ff(d.ann)}万円</td></tr>
+      <tr><td>公的年金/年</td><td class="r">${fmt(d.pub)}万円</td></tr>
+      <tr><td>合算年金収入</td><td class="r">${ff(d.ann+d.pub)}万円</td></tr>
+      <tr><td>公的年金等控除</td><td class="r">${ff(pc)}万円</td></tr>
+      <tr><td>社会保険料控除</td><td class="r">${ff(r65.soc&&r65.soc.t||0)}万円</td></tr>
+      <tr><td>基礎控除（所得税）</td><td class="r">48万円</td></tr>
+      <tr><td>医療費控除</td><td class="r">${fmt(d.med)}万円</td></tr>
+      <tr><td>配偶者控除</td><td class="r">${fmt(r65.sdIT||0)}万円</td></tr>
+      <tr><td>課税所得（所得税用）</td><td class="r">${ff(r65.tIT||0)}万円</td></tr>
+      <tr class="tot"><td>年金税額/年</td><td class="r" style="color:#e8714a">${ff(r65.total||0)}万円</td></tr>
+    </table></div>`;
+}
+
+function buildAnnual(){
+  let rows='';
+  G.yearData.forEach(d=>{
+    const c=d.age===65?'a65':d.age===75?'a75':'';
+    const pi=d.age>=65&&d.age<65+G.penYrs?ff(d.ann+G.pub):(d.age>=65?fmt(G.pub):'—');
+    rows+=`<tr class="${c}"><td>${d.age}歳${d.age===65?' ★':''}</td><td>${pi}</td><td>${ff(d.soc.t)}</td><td>${ff(d.tIT||0)}</td><td>${ff(d.it||0)}</td><td>${ff(d.jt||0)}</td><td>${fmt(d.totalTax)}</td></tr>`;
+  });
+  document.getElementById('r-an').innerHTML=`
+    <div class="inote">★65歳行の税額にはDC一時金の退職所得税（${fmt(G.lumpTax)}万円）を含みます。75歳以降はDC年金終了・公的年金のみ。</div>
+    <div class="atscroll"><table class="atable">
+      <tr><th>年齢</th><th>年金収入/年</th><th>社会保険料</th><th>課税所得(IT)</th><th>所得税+復興</th><th>住民税</th><th>年間税額計</th></tr>
+      ${rows}
+    </table></div>
+    <p style="font-size:11px;color:rgba(250,247,242,.4);margin-top:6px">単位：万円</p>`;
+}
+
+function buildLifetime(){
+  const d=G,totIT=d.yearData.reduce((s,x)=>s+x.it,0),totJT=d.yearData.reduce((s,x)=>s+x.jt,0);
+  document.getElementById('r-li').innerHTML=`
+    <div class="rgrid">
+      <div class="rc hi"><div class="rl">生涯合計税額</div><div class="rv b">${fmt(d.lifeTax)}万円</div></div>
+      <div class="rc"><div class="rl">生涯社会保険料</div><div class="rv b">${fmt(d.lifeSoc)}万円</div></div>
+      <div class="rc go"><div class="rl">退職金＋DC 税引後</div><div class="rv g">${fmt(d.ret+d.dc-d.lifeTax)}万円</div></div>
+      <div class="rc"><div class="rl">DC最適一時金</div><div class="rv i">${fmt(d.lump)}万円</div></div>
+    </div>
+    <div class="rb"><div class="rb-title">税額内訳（${60}〜${d.endAge}歳）</div>
+    <table class="rt">
+      <tr><td>退職金の退職所得税（60歳）</td><td class="r">${fmt(d.retTax)}万円</td></tr>
+      <tr><td>DC一時金の退職所得税（65歳）</td><td class="r">${fmt(d.lumpTax)}万円</td></tr>
+      <tr><td>年金所得税計（所得税+復興）</td><td class="r">${ff(totIT)}万円</td></tr>
+      <tr><td>住民税計</td><td class="r">${ff(totJT)}万円</td></tr>
+      <tr class="tot"><td>生涯合計税額</td><td class="r" style="color:#e8714a">${fmt(d.lifeTax)}万円</td></tr>
+    </table></div>
+    <div class="rb"><div class="rb-title">社会保険料内訳</div>
+    <table class="rt">
+      <tr><td>任意継続健保（60〜61歳）</td><td class="r">${fmt(gi('i-h1')*24/10000)}万円</td></tr>
+      <tr><td>国民健康保険（62〜64歳）</td><td class="r">${fmt(gi('i-h2')*36/10000)}万円</td></tr>
+      <tr><td>国民年金任意加入（54ヶ月）</td><td class="r">${ff(gi('i-nen')*54/10000)}万円</td></tr>
+      <tr><td>退職後健保（65〜74歳）</td><td class="r">${fmt(gi('i-h3')*120/10000)}万円</td></tr>
+      <tr><td>後期高齢者（75〜${d.endAge}歳）</td><td class="r">${fmt(gi('i-h4')*(d.endAge-74)*12/10000)}万円</td></tr>
+      <tr class="tot"><td>生涯社会保険料合計</td><td class="r" style="color:#e8714a">${fmt(d.lifeSoc)}万円</td></tr>
+    </table></div>
+    <div class="wnote">本試算は概算です。実際の税額は確定申告等で変動します。</div>`;
+}
+
+function buildCharts(){
+  const d=G.yearData,labels=d.map(x=>x.age+'歳');
+  const lumps=d.map(x=>x.age===65?Math.round(G.lump):x.age===60?Math.round(G.ret):0);
+  const anns=d.map(x=>Math.round(x.myInc));
+  const sps=d.map(x=>Math.round(x.spInc));
+  const taxN=d.map(x=>-Math.round(x.totalTax));
+  const socN=d.map(x=>-Math.round(x.soc.t));
+  const taxP=d.map(x=>Math.round(x.totalTax));
+  const socP=d.map(x=>Math.round(x.soc.t));
+  const cfg={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,ticks:{font:{size:9},color:'rgba(250,247,242,.4)',maxTicksLimit:16}},y:{stacked:true,ticks:{callback:v=>v+'万',font:{size:9},color:'rgba(250,247,242,.4)'}}}};
+  if(myC)myC.destroy();
+  myC=new Chart(document.getElementById('mainChart'),{type:'bar',data:{labels,datasets:[
+    {label:'一時金',data:lumps,backgroundColor:'#1a6b4a'},
+    {label:'年金',data:anns,backgroundColor:'#4aad82'},
+    {label:'配偶者',data:sps,backgroundColor:'#6fa8dc'},
+    {label:'社保',data:socN,backgroundColor:'#c0392b'},
+    {label:'税金',data:taxN,backgroundColor:'#6b5e57'},
+  ]},options:cfg});
+  const cfg2={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9},color:'rgba(250,247,242,.4)',maxTicksLimit:16}},y:{ticks:{callback:v=>v+'万',font:{size:9},color:'rgba(250,247,242,.4)'}}}};
+  if(txC)txC.destroy();
+  txC=new Chart(document.getElementById('taxChart'),{type:'line',data:{labels,datasets:[
+    {label:'年間税額',data:taxP,borderColor:'#e8714a',backgroundColor:'rgba(232,113,74,.1)',borderWidth:2,pointRadius:2,fill:true},
+    {label:'社会保険料',data:socP,borderColor:'#6fa8dc',backgroundColor:'rgba(107,163,220,.1)',borderWidth:2,pointRadius:2,fill:true},
+  ]},options:cfg2});
+}
+
+function showTab(id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(id).classList.add('active');
+  if(id==='tc'&&G.yearData)buildCharts();
+}
+calcAll();
+</script>
+</body>
+</html>
