@@ -266,7 +266,7 @@ p{margin-bottom:1em;color:var(--ink2)}
         <div class="irow"><label>国民健康保険（62〜64歳）</label><input type="number" id="i-h2" value="11275"><span class="unit">円/月</span></div>
         <div class="irow"><label>国民年金任意加入（月額）</label><input type="number" id="i-nen" value="16980"><span class="unit">円/月</span></div>
         <div class="irow"><label>退職後健保（65〜74歳）</label><input type="number" id="i-h3" value="25000"><span class="unit">円/月</span></div>
-        <div class="irow"><label>後期高齢者医療（75歳〜）</label><input type="number" id="i-h4" value="12000"><span class="unit">円/月</span></div>
+        <div class="irow"><label>後期高齢者医療（75歳〜）<br><small style="opacity:.6">千葉県料率で所得連動自動計算<br>均等割4.38万＋所得割9.11%×2人</small></label><input type="number" id="i-h4" value="0" readonly style="opacity:.5"><span class="unit">自動</span></div>
       </div>
       <div class="ibox">
         <div class="ibox-title">各種控除（年額・万円）</div>
@@ -321,17 +321,31 @@ function mimashi(ret){if(ret<=800)return Math.floor(ret/40);return Math.floor((r
 function pCtrl65(tot){if(tot<=0)return 0;if(tot<330)return 110;if(tot<410)return tot*0.25+27.5;if(tot<770)return tot*0.15+68.5;if(tot<1000)return tot*0.05+145.5;return 195.5;}
 function salCtrl(s){if(s<=55)return 55;if(s<=180)return s*0.4-10;if(s<=360)return s*0.3+8;if(s<=660)return s*0.2+44;if(s<=850)return s*0.1+110;return 195;}
 
-function socPrem(age, dcAge){
-  const h1=gi('i-h1')*12/10000,h2=gi('i-h2')*12/10000,nen=gi('i-nen')*12/10000,h3=gi('i-h3')*12/10000,h4=gi('i-h4')*12/10000;
+// 後期高齢者保険料を所得連動で計算（千葉県令和6〜7年度料率）
+// 均等割43,800円 + (年金雑所得 - 43万円) × 9.11% 上限80万円 1人あたり
+function koukiPrem(penInc){
+  // penInc：年金雑所得（公的年金等控除後）
+  // 賦課のもととなる所得 = 年金雑所得 - 43万円（基礎控除）
+  const kisoCtrl = 43;
+  const base = Math.max(0, penInc - kisoCtrl);
+  const shotokuWari = base * 0.0911;
+  const prem = 4.38 + shotokuWari; // 4.38万円 = 均等割43,800円
+  return Math.min(prem, 80); // 上限80万円
+}
+
+function socPrem(age, dcAge, penInc){
+  const h1=gi('i-h1')*12/10000,h2=gi('i-h2')*12/10000,nen=gi('i-nen')*12/10000,h3=gi('i-h3')*12/10000;
   const da=dcAge||65;
-  // 国民年金任意加入は60歳からdcAge未満まで
   const hasNen=age<da;
-  // 健保：任意継続は60〜61歳、国保は62歳〜dcAge未満、退職後健保はdcAge以降
   let h=0,n=0;
   if(age<=61){h=h1;}
   else if(age<da){h=h2;}
   else if(age<=74){h=h3;}
-  else{h=h4;}
+  else{
+    // 75歳以降：所得連動の後期高齢者保険料（1人分）× 2人
+    const pi=penInc||0;
+    h=koukiPrem(pi)*2; // 夫婦2人分
+  }
   if(hasNen) n=nen;
   return{h,n,t:h+n};
 }
@@ -341,14 +355,12 @@ function annTax(age,dcAnn,pub,med,life,quake,other,spPen,spSal65){
 }
 function annTaxFull(age,dcAnn,pubInc,med,life,quake,other,spPen,spSal65,dcAge,nenMonths){
   const da=dcAge||65;
-  const s=socPrem(age,da);
+  // まず年金所得を計算（社会保険料控除前）
   let penInc=0,sdIT=0,sdJT=0;
-  // 公的年金控除：65歳以上かつ(DC年金 or 公的年金)がある場合
   if(age>=65){
     const tot=dcAnn+pubInc;
     penInc=Math.max(0,tot-pCtrl65(tot));
   } else if(age>=da&&dcAnn>0){
-    // 65歳未満でDC年金受取の場合（60〜64歳）：65歳未満の公的年金等控除
     const tot=dcAnn;
     let ctrl=0;
     if(tot<130)ctrl=60;
@@ -357,6 +369,8 @@ function annTaxFull(age,dcAnn,pubInc,med,life,quake,other,spPen,spSal65,dcAge,ne
     else ctrl=195.5;
     penInc=Math.max(0,tot-ctrl);
   }
+  // 後期高齢者保険料は年金雑所得(penInc)に連動して計算
+  const s=socPrem(age,da,penInc);
   const bdIT=48+s.t+med+life+quake+other;
   const bdJT=43+s.t+med+life+quake+other;
   if(age>=65){
@@ -366,7 +380,7 @@ function annTaxFull(age,dcAnn,pubInc,med,life,quake,other,spPen,spSal65,dcAge,ne
   const tIT=Math.max(0,penInc-bdIT-sdIT);
   const tJT=Math.max(0,penInc-bdJT-sdJT);
   const it=itax(tIT)*1.021,jt=jtax(tJT);
-  return{penInc,tIT,tJT,it,jt,total:it+jt,soc:s,sdIT};
+  return{penInc,tIT,tJT,it,jt,total:it+jt,soc:s,sdIT,koukiPremPerPerson:age>=75?koukiPrem(penInc):0};
 }
 
 function findBestDC(dc,dcCtrl,penYrs,pub,med,life,quake,other,spPen,spSal65,endAge,dcAge){
@@ -514,7 +528,7 @@ function buildAnnual(){
       <tr><th>年齢</th><th>年金収入/年</th><th>社会保険料</th><th>課税所得(IT)</th><th>所得税+復興</th><th>住民税</th><th>年間税額計</th></tr>
       ${rows}
     </table></div>
-    <p style="font-size:11px;color:rgba(250,247,242,.4);margin-top:6px">単位：万円</p>`;
+    <p style="font-size:11px;color:rgba(250,247,242,.4);margin-top:6px">単位：万円 ／ 75歳以降の社会保険料は後期高齢者保険料（千葉県料率・所得連動・夫婦2人分）</p>`;
 }
 
 function buildLifetime(){
@@ -540,7 +554,7 @@ function buildLifetime(){
       <tr><td>国民健康保険（62〜64歳）</td><td class="r">${fmt(gi('i-h2')*36/10000)}万円</td></tr>
       <tr><td>国民年金任意加入（54ヶ月）</td><td class="r">${ff(gi('i-nen')*54/10000)}万円</td></tr>
       <tr><td>退職後健保（65〜74歳）</td><td class="r">${fmt(gi('i-h3')*120/10000)}万円</td></tr>
-      <tr><td>後期高齢者（75〜${d.endAge}歳）</td><td class="r">${fmt(gi('i-h4')*(d.endAge-74)*12/10000)}万円</td></tr>
+      <tr><td>後期高齢者（75〜${d.endAge}歳・所得連動）</td><td class="r">${fmt(d.yearData.filter(x=>x.age>=75).reduce((s,x)=>s+x.soc.h,0))}万円</td></tr>
       <tr class="tot"><td>生涯社会保険料合計</td><td class="r" style="color:#e8714a">${fmt(d.lifeSoc)}万円</td></tr>
     </table></div>
     <div class="wnote">本試算は概算です。実際の税額は確定申告等で変動します。</div>`;
