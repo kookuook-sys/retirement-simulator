@@ -491,7 +491,7 @@ function buildDC(){
       <tr><td>公的年金/年</td><td class="r">${fmt(d.pub)}万円</td></tr>
       <tr><td>合算年金収入</td><td class="r">${ff(d.ann+d.pub)}万円</td></tr>
       <tr><td>公的年金等控除</td><td class="r">${ff(pc)}万円</td></tr>
-      <tr><td>社会保険料控除</td><td class="r">${ff(r65.soc&&r65.soc.t||0)}万円</td></tr>
+      <tr><td>社会保険料控除</td><td class="r">${ff(rDC.soc&&rDC.soc.t||0)}万円</td></tr>
       <tr><td>基礎控除（所得税）</td><td class="r">48万円</td></tr>
       <tr><td>医療費控除</td><td class="r">${fmt(d.med)}万円</td></tr>
       <tr><td>配偶者控除</td><td class="r">${fmt(rDC.sdIT||0)}万円</td></tr>
