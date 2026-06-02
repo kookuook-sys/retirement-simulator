@@ -244,9 +244,10 @@ p{margin-bottom:1em;color:var(--ink2)}
       <div class="ibox">
         <div class="ibox-title">退職・DC基本情報</div>
         <div class="irow"><label>退職金（万円・60歳受取）</label><input type="number" id="i-ret" value="1000"><span class="unit">万円</span></div>
-        <div class="irow"><label>勤続年数</label><input type="number" id="i-yrs" value="35"><span class="unit">年</span></div>
+        <div class="irow"><label>勤続年数（退職時）</label><input type="number" id="i-yrs" value="35"><span class="unit">年</span></div>
         <div class="irow"><label>DC積立残高</label><input type="number" id="i-dc" value="3000"><span class="unit">万円</span></div>
-        <div class="irow"><label>DC受取時の勤続年数<br><small style="opacity:.6">iDeCo延長後の合計年数</small></label><input type="number" id="i-dcyrs" value="40"><span class="unit">年</span></div>
+        <div class="irow"><label>DC受取年齢<br><small style="opacity:.6">60〜65歳で設定</small></label><input type="number" id="i-dcage" value="65" min="60" max="65" oninput="onDCageChange()"><span class="unit">歳</span></div>
+        <div class="irow"><label>国民年金任意加入期間<br><small style="opacity:.6">DC受取年齢まで自動計算</small></label><input type="number" id="i-nenmonths" value="60" readonly style="opacity:.7"><span class="unit">ヶ月</span></div>
         <div class="irow"><label>DC一時金（0＝自動最適化）</label><input type="number" id="i-lump" value="0"><span class="unit">万円</span></div>
         <div class="irow"><label>DC年金受取期間</label><input type="number" id="i-pyrs" value="10"><span class="unit">年</span></div>
       </div>
@@ -263,7 +264,7 @@ p{margin-bottom:1em;color:var(--ink2)}
         <div class="ibox-title">社会保険料（月額・円）</div>
         <div class="irow"><label>任意継続健保（60〜61歳）</label><input type="number" id="i-h1" value="30000"><span class="unit">円/月</span></div>
         <div class="irow"><label>国民健康保険（62〜64歳）</label><input type="number" id="i-h2" value="11275"><span class="unit">円/月</span></div>
-        <div class="irow"><label>国民年金任意加入（60〜64歳）</label><input type="number" id="i-nen" value="16980"><span class="unit">円/月</span></div>
+        <div class="irow"><label>国民年金任意加入（月額）</label><input type="number" id="i-nen" value="16980"><span class="unit">円/月</span></div>
         <div class="irow"><label>退職後健保（65〜74歳）</label><input type="number" id="i-h3" value="25000"><span class="unit">円/月</span></div>
         <div class="irow"><label>後期高齢者医療（75歳〜）</label><input type="number" id="i-h4" value="12000"><span class="unit">円/月</span></div>
       </div>
@@ -320,18 +321,42 @@ function mimashi(ret){if(ret<=800)return Math.floor(ret/40);return Math.floor((r
 function pCtrl65(tot){if(tot<=0)return 0;if(tot<330)return 110;if(tot<410)return tot*0.25+27.5;if(tot<770)return tot*0.15+68.5;if(tot<1000)return tot*0.05+145.5;return 195.5;}
 function salCtrl(s){if(s<=55)return 55;if(s<=180)return s*0.4-10;if(s<=360)return s*0.3+8;if(s<=660)return s*0.2+44;if(s<=850)return s*0.1+110;return 195;}
 
-function socPrem(age){
+function socPrem(age, dcAge){
   const h1=gi('i-h1')*12/10000,h2=gi('i-h2')*12/10000,nen=gi('i-nen')*12/10000,h3=gi('i-h3')*12/10000,h4=gi('i-h4')*12/10000;
-  if(age<=61)return{h:h1,n:nen,t:h1+nen};
-  if(age<=64)return{h:h2,n:nen,t:h2+nen};
-  if(age<=74)return{h:h3,n:0,t:h3};
-  return{h:h4,n:0,t:h4};
+  const da=dcAge||65;
+  // 国民年金任意加入は60歳からdcAge未満まで
+  const hasNen=age<da;
+  // 健保：任意継続は60〜61歳、国保は62歳〜dcAge未満、退職後健保はdcAge以降
+  let h=0,n=0;
+  if(age<=61){h=h1;}
+  else if(age<da){h=h2;}
+  else if(age<=74){h=h3;}
+  else{h=h4;}
+  if(hasNen) n=nen;
+  return{h,n,t:h+n};
 }
 
 function annTax(age,dcAnn,pub,med,life,quake,other,spPen,spSal65){
-  const s=socPrem(age);
+  return annTaxFull(age,dcAnn,pub,med,life,quake,other,spPen,spSal65,65,60);
+}
+function annTaxFull(age,dcAnn,pubInc,med,life,quake,other,spPen,spSal65,dcAge,nenMonths){
+  const da=dcAge||65;
+  const s=socPrem(age,da);
   let penInc=0,sdIT=0,sdJT=0;
-  if(age>=65){const tot=dcAnn+pub;penInc=Math.max(0,tot-pCtrl65(tot));}
+  // 公的年金控除：65歳以上かつ(DC年金 or 公的年金)がある場合
+  if(age>=65){
+    const tot=dcAnn+pubInc;
+    penInc=Math.max(0,tot-pCtrl65(tot));
+  } else if(age>=da&&dcAnn>0){
+    // 65歳未満でDC年金受取の場合（60〜64歳）：65歳未満の公的年金等控除
+    const tot=dcAnn;
+    let ctrl=0;
+    if(tot<130)ctrl=60;
+    else if(tot<410)ctrl=tot*0.25+27.5;
+    else if(tot<770)ctrl=tot*0.15+68.5;
+    else ctrl=195.5;
+    penInc=Math.max(0,tot-ctrl);
+  }
   const bdIT=48+s.t+med+life+quake+other;
   const bdJT=43+s.t+med+life+quake+other;
   if(age>=65){
@@ -344,14 +369,20 @@ function annTax(age,dcAnn,pub,med,life,quake,other,spPen,spSal65){
   return{penInc,tIT,tJT,it,jt,total:it+jt,soc:s,sdIT};
 }
 
-function findBest(dc,dcCtrl,penYrs,pub,med,life,quake,other,spPen,spSal65,endAge){
+function findBestDC(dc,dcCtrl,penYrs,pub,med,life,quake,other,spPen,spSal65,endAge,dcAge){
+  const da=dcAge||65;
+  const nenM=(da-60)*12;
   let best={lump:dc,total:Infinity,lumpTax:0,taxableL:0};
   for(let l=0;l<=dc;l+=100){
     const ann=(dc-l)/penYrs;
     const tl=Math.max(0,(l-dcCtrl)/2);
     const lt=itax(tl)*1.021+tl*0.1;
     let at=0;
-    for(let age=65;age<=endAge;age++)at+=annTax(age,(age<65+penYrs?ann:0),pub,med,life,quake,other,spPen,spSal65).total;
+    for(let age=60;age<=endAge;age++){
+      const dca=(age>=da&&age<da+penYrs)?ann:0;
+      const pubInc=age>=65?pub:0;
+      at+=annTaxFull(age,dca,pubInc,med,life,quake,other,spPen,spSal65,da,nenM).total;
+    }
     if(lt+at<best.total)best={lump:l,total:lt+at,lumpTax:lt,taxableL:tl};
   }
   return best;
@@ -359,13 +390,37 @@ function findBest(dc,dcCtrl,penYrs,pub,med,life,quake,other,spPen,spSal65,endAge
 
 let G={},myC=null,txC=null;
 
+// DC受取年齢変更時に国民年金任意加入期間を自動更新
+function onDCageChange(){
+  const dcAge=Math.min(65,Math.max(60,parseInt(document.getElementById('i-dcage').value)||65));
+  document.getElementById('i-dcage').value=dcAge;
+  // 60歳から受取年齢の誕生月まで：(dcAge-60)*12ヶ月
+  const nenMonths=(dcAge-60)*12;
+  document.getElementById('i-nenmonths').value=nenMonths;
+}
+
+// DC受取年齢から勤続年数（DC控除用）を自動計算
+function calcDCyrs(retireYrs, dcAge){
+  // 定年60歳＋(dcAge-60)年延長 → retireYrs+(dcAge-60)
+  return retireYrs+(dcAge-60);
+}
+
 function calcAll(){
-  const ret=gi('i-ret'),yrs=gi('i-yrs'),dc=gi('i-dc'),dcyrs=gi('i-dcyrs');
+  const ret=gi('i-ret'),yrs=gi('i-yrs'),dc=gi('i-dc');
+  const dcAge=Math.min(65,Math.max(60,gi('i-dcage')||65));
+  const nenMonths=(dcAge-60)*12;
+  document.getElementById('i-nenmonths').value=nenMonths;
+
+  // DC受取時の勤続年数（退職時勤続年数＋延長年数）
+  const dcyrs=calcDCyrs(yrs, dcAge);
+
   const lumpIn=gi('i-lump'),penYrs=gi('i-pyrs'),pub=gi('i-pub');
   const spSal=gi('i-sp-sal'),spPen=gi('i-sp-pen'),spSal65=gi('i-sp-sal65');
   const med=gi('i-med'),life=gi('i-life'),quake=gi('i-quake'),other=gi('i-other');
   const endAge=gi('i-end')||90;
 
+  // 19年ルール：退職金受取からdcAge-60年後にDC受取
+  // 19年以内なので常に重複排除対象
   const dcCtrlFull=rCtrl(dcyrs);
   const mYrs=mimashi(ret);
   const mCtrl=rCtrl(mYrs);
@@ -376,40 +431,44 @@ function calcAll(){
 
   const best=lumpIn>0
     ?{lump:lumpIn,lumpTax:(t=>{const tl=Math.max(0,(t-dcCtrl)/2);return itax(tl)*1.021+tl*0.1;})(lumpIn),taxableL:Math.max(0,(lumpIn-dcCtrl)/2)}
-    :findBest(dc,dcCtrl,penYrs,pub,med,life,quake,other,spPen,spSal65,endAge);
+    :findBestDC(dc,dcCtrl,penYrs,pub,med,life,quake,other,spPen,spSal65,endAge,dcAge);
 
   const lump=best.lump,lumpTax=best.lumpTax,ann=(dc-lump)/penYrs;
   const ages=[];for(let a=60;a<=endAge;a++)ages.push(a);
 
   const yd=ages.map(age=>{
-    const dca=(age>=65&&age<65+penYrs)?ann:0;
-    const r=annTax(age,dca,pub,med,life,quake,other,spPen,spSal65);
+    // DC年金はdcAge歳から(dcAge+penYrs-1)歳まで
+    const dca=(age>=dcAge&&age<dcAge+penYrs)?ann:0;
+    // 公的年金は65歳から
+    const pubInc=age>=65?pub:0;
+    const r=annTaxFull(age,dca,pubInc,med,life,quake,other,spPen,spSal65,dcAge,nenMonths);
     let tot=r.total;
     if(age===60)tot+=retTax;
-    if(age===65)tot+=lumpTax;
-    const myInc=age>=65&&age<65+penYrs?ann+pub:(age>=65?pub:(age===60?gi('i-unemp'):0));
-    return{...r,age,dca,totalTax:tot,myInc,spInc:age<65?spSal:(spSal65+spPen),retTax:age===60?retTax:0,lumpTax:age===65?lumpTax:0};
+    if(age===dcAge)tot+=lumpTax;
+    const myInc=age>=dcAge&&age<dcAge+penYrs?ann+pubInc:(age>=65?pub:(age===60?gi('i-unemp'):0));
+    return{...r,age,dca,totalTax:tot,myInc,spInc:age<65?spSal:(spSal65+spPen),
+      retTax:age===60?retTax:0,lumpTax:age===dcAge?lumpTax:0,dcAge};
   });
 
-  G={ret,yrs,dc,dcyrs,dcCtrlFull,mYrs,mCtrl,dcCtrl,rc36,retTaxable,retTax,lump,lumpTax,ann,penYrs,pub,spSal,spPen,spSal65,med,life,quake,other,yearData:yd,endAge,
+  G={ret,yrs,dc,dcyrs,dcAge,nenMonths,dcCtrlFull,mYrs,mCtrl,dcCtrl,rc36,retTaxable,retTax,lump,lumpTax,ann,penYrs,pub,spSal,spPen,spSal65,med,life,quake,other,yearData:yd,endAge,
     lifeTax:yd.reduce((s,d)=>s+d.totalTax,0),lifeSoc:yd.reduce((s,d)=>s+d.soc.t,0)};
 
-  document.getElementById('c-prev').innerHTML=`<div class="inote">✓ 計算完了｜最適一時金 <strong style="color:#e8714a">${fmt(lump)}万円</strong>、年金 <strong>${ff(ann)}万円/年×${penYrs}年</strong>、DC控除（19年ルール後）<strong>${fmt(dcCtrl)}万円</strong><br>各タブで詳細をご確認ください。</div>`;
+  document.getElementById('c-prev').innerHTML=`<div class="inote">✓ 計算完了｜DC受取年齢 <strong style="color:#e8714a">${dcAge}歳</strong>、国民年金任意加入 <strong>${nenMonths}ヶ月</strong>、DC控除（19年ルール後）<strong>${fmt(dcCtrl)}万円</strong>、最適一時金 <strong>${fmt(lump)}万円</strong>、年金 <strong>${ff(ann)}万円/年×${penYrs}年</strong><br>各タブで詳細をご確認ください。</div>`;
 
   buildDC(); buildAnnual(); buildLifetime();
   if(document.getElementById('tc').classList.contains('active'))buildCharts();
 }
 
 function buildDC(){
-  const d=G,r65=d.yearData.find(x=>x.age===65)||{};
-  const pc=pCtrl65(d.ann+d.pub);
+  const d=G,rDC=d.yearData.find(x=>x.age===d.dcAge)||{};
+  const pc=d.dcAge>=65?pCtrl65(d.ann+d.pub):Math.max(0,d.ann-(d.ann<130?60:(d.ann<410?d.ann*0.25+27.5:d.ann*0.15+68.5)));
   document.getElementById('r-dc').innerHTML=`
     <div class="inote">退職所得（一時金）は分離課税のため年金所得とは独立して計算されます。</div>
     <div class="rgrid">
       <div class="rc"><div class="rl">退職金税額(60歳)</div><div class="rv ${d.retTax===0?'g':'b'}">${fmt(d.retTax)}万円</div></div>
       <div class="rc hi"><div class="rl">DC控除(19年ルール後)</div><div class="rv i">${fmt(d.dcCtrl)}万円</div></div>
-      <div class="rc"><div class="rl">DC一時金税額(65歳)</div><div class="rv b">${fmt(d.lumpTax)}万円</div></div>
-      <div class="rc go"><div class="rl">65歳 年金税額/年</div><div class="rv g">${ff(r65.total||0)}万円</div></div>
+      <div class="rc"><div class="rl">DC一時金税額(${d.dcAge}歳)</div><div class="rv b">${fmt(d.lumpTax)}万円</div></div>
+      <div class="rc go"><div class="rl">${d.dcAge}歳 年金税額/年</div><div class="rv g">${ff(rDC.total||0)}万円</div></div>
     </div>
     <div class="rb"><div class="rb-title">19年ルールの計算根拠</div>
     <table class="rt">
@@ -435,21 +494,22 @@ function buildDC(){
       <tr><td>社会保険料控除</td><td class="r">${ff(r65.soc&&r65.soc.t||0)}万円</td></tr>
       <tr><td>基礎控除（所得税）</td><td class="r">48万円</td></tr>
       <tr><td>医療費控除</td><td class="r">${fmt(d.med)}万円</td></tr>
-      <tr><td>配偶者控除</td><td class="r">${fmt(r65.sdIT||0)}万円</td></tr>
-      <tr><td>課税所得（所得税用）</td><td class="r">${ff(r65.tIT||0)}万円</td></tr>
-      <tr class="tot"><td>年金税額/年</td><td class="r" style="color:#e8714a">${ff(r65.total||0)}万円</td></tr>
+      <tr><td>配偶者控除</td><td class="r">${fmt(rDC.sdIT||0)}万円</td></tr>
+      <tr><td>課税所得（所得税用）</td><td class="r">${ff(rDC.tIT||0)}万円</td></tr>
+      <tr class="tot"><td>年金税額/年（${d.dcAge}歳）</td><td class="r" style="color:#e8714a">${ff(rDC.total||0)}万円</td></tr>
     </table></div>`;
 }
 
 function buildAnnual(){
   let rows='';
   G.yearData.forEach(d=>{
-    const c=d.age===65?'a65':d.age===75?'a75':'';
-    const pi=d.age>=65&&d.age<65+G.penYrs?ff(d.dca+G.pub):(d.age>=65?fmt(G.pub):'—');
+    const c=d.age===G.dcAge?'a65':d.age===G.dcAge+G.penYrs?'a75':'';
+    const pubShow=d.age>=65?G.pub:0;
+    const pi=d.age>=G.dcAge&&d.age<G.dcAge+G.penYrs?ff(d.dca+pubShow):(d.age>=65?fmt(G.pub):(d.age>=G.dcAge?ff(d.dca):'—'));
     rows+=`<tr class="${c}"><td>${d.age}歳${d.age===65?' ★':''}</td><td>${pi}</td><td>${ff(d.soc.t)}</td><td>${ff(d.tIT||0)}</td><td>${ff(d.it||0)}</td><td>${ff(d.jt||0)}</td><td>${fmt(d.totalTax)}</td></tr>`;
   });
   document.getElementById('r-an').innerHTML=`
-    <div class="inote">★65歳行の税額にはDC一時金の退職所得税（${fmt(G.lumpTax)}万円）を含みます。75歳以降はDC年金終了・公的年金のみ。</div>
+    <div class="inote">★${G.dcAge}歳行の税額にはDC一時金の退職所得税（${fmt(G.lumpTax)}万円）を含みます。${G.dcAge+G.penYrs}歳以降はDC年金終了・公的年金のみ。</div>
     <div class="atscroll"><table class="atable">
       <tr><th>年齢</th><th>年金収入/年</th><th>社会保険料</th><th>課税所得(IT)</th><th>所得税+復興</th><th>住民税</th><th>年間税額計</th></tr>
       ${rows}
@@ -488,7 +548,7 @@ function buildLifetime(){
 
 function buildCharts(){
   const d=G.yearData,labels=d.map(x=>x.age+'歳');
-  const lumps=d.map(x=>x.age===65?Math.round(G.lump):x.age===60?Math.round(G.ret):0);
+  const lumps=d.map(x=>x.age===G.dcAge?Math.round(G.lump):x.age===60?Math.round(G.ret):0);
   const anns=d.map(x=>Math.round(x.myInc));
   const sps=d.map(x=>Math.round(x.spInc));
   const taxN=d.map(x=>-Math.round(x.totalTax));
