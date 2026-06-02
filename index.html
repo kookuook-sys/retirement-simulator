@@ -266,7 +266,7 @@ p{margin-bottom:1em;color:var(--ink2)}
         <div class="irow"><label>国民健康保険（62〜64歳）</label><input type="number" id="i-h2" value="11275"><span class="unit">円/月</span></div>
         <div class="irow"><label>国民年金任意加入（月額）</label><input type="number" id="i-nen" value="16980"><span class="unit">円/月</span></div>
         <div class="irow"><label>退職後健保（65〜74歳）</label><input type="number" id="i-h3" value="25000"><span class="unit">円/月</span></div>
-        <div class="irow"><label>後期高齢者医療（75歳〜）<br><small style="opacity:.6">千葉県料率で所得連動自動計算<br>均等割4.38万＋所得割9.11%×2人</small></label><input type="number" id="i-h4" value="0" readonly style="opacity:.5"><span class="unit">自動</span></div>
+        <div class="irow"><label>後期高齢者医療（75歳〜）<br><small style="opacity:.6">千葉県料率・年金収入に連動して<br>自動計算（均等割4.38万＋所得割9.11%×夫婦2人）</small></label><span style="font-size:12px;color:rgba(250,247,242,.6);min-width:95px;text-align:right">④生涯サマリーで確認</span><span class="unit"></span></div>
       </div>
       <div class="ibox">
         <div class="ibox-title">各種控除（年額・万円）</div>
@@ -551,10 +551,13 @@ function buildLifetime(){
     <div class="rb"><div class="rb-title">社会保険料内訳</div>
     <table class="rt">
       <tr><td>任意継続健保（60〜61歳）</td><td class="r">${fmt(gi('i-h1')*24/10000)}万円</td></tr>
-      <tr><td>国民健康保険（62〜64歳）</td><td class="r">${fmt(gi('i-h2')*36/10000)}万円</td></tr>
-      <tr><td>国民年金任意加入（54ヶ月）</td><td class="r">${ff(gi('i-nen')*54/10000)}万円</td></tr>
-      <tr><td>退職後健保（65〜74歳）</td><td class="r">${fmt(gi('i-h3')*120/10000)}万円</td></tr>
-      <tr><td>後期高齢者（75〜${d.endAge}歳・所得連動）</td><td class="r">${fmt(d.yearData.filter(x=>x.age>=75).reduce((s,x)=>s+x.soc.h,0))}万円</td></tr>
+      <tr><td>国民健康保険（62〜${d.dcAge-1}歳）</td><td class="r">${fmt(gi('i-h2')*(d.dcAge-62)*12/10000)}万円</td></tr>
+      <tr><td>国民年金任意加入（${d.nenMonths}ヶ月）</td><td class="r">${ff(gi('i-nen')*d.nenMonths/10000)}万円</td></tr>
+      <tr><td>退職後健保（${d.dcAge}〜74歳）</td><td class="r">${fmt(gi('i-h3')*(75-d.dcAge)*12/10000)}万円</td></tr>
+      <tr><td>後期高齢者（75〜${d.endAge}歳・所得連動）<br>
+        <small style="opacity:.6">均等割4.38万×2人＋所得割9.11%</small></td>
+        <td class="r">${fmt(d.yearData.filter(x=>x.age>=75).reduce((s,x)=>s+x.soc.h,0))}万円<br>
+        <small style="opacity:.7">（年平均${ff(d.yearData.filter(x=>x.age>=75).reduce((s,x)=>s+x.soc.h,0)/(d.endAge-74))}万円/年）</small></td></tr>
       <tr class="tot"><td>生涯社会保険料合計</td><td class="r" style="color:#e8714a">${fmt(d.lifeSoc)}万円</td></tr>
     </table></div>
     <div class="wnote">本試算は概算です。実際の税額は確定申告等で変動します。</div>`;
