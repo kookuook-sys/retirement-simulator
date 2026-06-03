@@ -237,6 +237,7 @@ p{margin-bottom:1em;color:var(--ink2)}
     <button class="tab" onclick="showTab('ta')">③ 年齢別税額</button>
     <button class="tab" onclick="showTab('tl')">④ 生涯サマリー</button>
     <button class="tab" onclick="showTab('tc')">⑤ グラフ</button>
+    <button class="tab" onclick="showTab('tb')">⑥ 生涯収支</button>
   </div>
 
   <div id="ti" class="panel active">
@@ -287,6 +288,7 @@ p{margin-bottom:1em;color:var(--ink2)}
     <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
     <div class="chart-wrap" style="height:200px"><canvas id="taxChart"></canvas></div>
   </div>
+  <div id="tb" class="panel"><div id="r-bs"></div></div>
 </div>
 </div>
 
@@ -595,7 +597,150 @@ function showTab(id){
   event.target.classList.add('active');
   document.getElementById(id).classList.add('active');
   if(id==='tc'&&G.yearData)buildCharts();
+  if(id==='tb'&&G.yearData)buildBS();
 }
+
+// ===== 生涯収支サマリー =====
+function buildBS(){
+  const d=G;
+  const endAge=d.endAge;
+
+  // 収入の集計
+  const retIncome   = d.ret;                                      // 退職金
+  const dcLump      = d.lump;                                     // DC一時金
+  const dcAnn       = (d.dc-d.lump);                             // DC年金総額
+  const pubTotal    = d.pub*(endAge-64);                          // 本人公的年金
+  const spSalTotal  = d.spSal*Math.min(5,65-60);                 // 配偶者給与〜64歳
+  const spSal65Total= d.spSal65*(endAge-64);                     // 配偶者給与65歳〜
+  const spPenTotal  = d.spPen*(endAge-64);                       // 配偶者年金
+  const unempTotal  = gi('i-unemp');                              // 失業給付（非課税）
+  const totalIncome = retIncome+dcLump+dcAnn+pubTotal+spSalTotal+spSal65Total+spPenTotal+unempTotal;
+
+  // 税・社保の集計
+  const totalTax  = d.lifeTax;
+  const totalSoc  = d.lifeSoc;
+  const totalBurden= totalTax+totalSoc;
+
+  // 手残り
+  const netIncome = totalIncome - totalBurden;
+  const burdenRate= totalBurden/totalIncome*100;
+
+  // 税・社保の内訳（yearDataから集計）
+  const retTaxAmt  = d.retTax;
+  const lumpTaxAmt = d.lumpTax;
+  const annTaxAmt  = d.yearData.reduce((s,x)=>s+x.it+x.jt,0);
+
+  // 社保内訳
+  const h1Total = d.yearData.filter(x=>x.age<=61).reduce((s,x)=>s+x.soc.h,0);
+  const h2Total = d.yearData.filter(x=>x.age>=62&&x.age<d.dcAge).reduce((s,x)=>s+x.soc.h,0);
+  const nenTotal= d.yearData.filter(x=>x.age<d.dcAge).reduce((s,x)=>s+x.soc.n,0);
+  const h3Total = d.yearData.filter(x=>x.age>=d.dcAge&&x.age<=74).reduce((s,x)=>s+x.soc.h,0);
+  const h4Total = d.yearData.filter(x=>x.age>=75).reduce((s,x)=>s+x.soc.h,0);
+
+  // 年齢帯別収支
+  const periods=[
+    {label:'60〜64歳（定年直後）',ages:[60,64]},
+    {label:'65〜74歳（前期高齢者）',ages:[65,74]},
+    {label:'75〜84歳（後期高齢者前半）',ages:[75,84]},
+    {label:'85〜90歳（後期高齢者後半）',ages:[85,endAge]},
+  ].filter(p=>p.ages[0]<=endAge);
+
+  let periodRows='';
+  periods.forEach(p=>{
+    const [a0,a1]=p.ages;
+    const pData=d.yearData.filter(x=>x.age>=a0&&x.age<=a1);
+    const pInc=pData.reduce((s,x)=>{
+      let inc=x.myInc;
+      if(x.age<=64) inc+=d.spSal;
+      else inc+=(d.spSal65+d.spPen);
+      if(x.age===60) inc+=d.ret+unempTotal;
+      if(x.age===d.dcAge) inc+=d.lump;
+      return s+inc;
+    },0);
+    const pTax=pData.reduce((s,x)=>s+x.totalTax,0);
+    const pSoc=pData.reduce((s,x)=>s+x.soc.t,0);
+    const pNet=pInc-pTax-pSoc;
+    periodRows+=`<tr>
+      <td>${p.label}</td>
+      <td class="r">${fmt(pInc)}万円</td>
+      <td class="r bad">${fmt(pTax)}万円</td>
+      <td class="r bad">${fmt(pSoc)}万円</td>
+      <td class="r bad">${fmt(pTax+pSoc)}万円</td>
+      <td class="r good">${fmt(pNet)}万円</td>
+    </tr>`;
+  });
+
+  document.getElementById('r-bs').innerHTML=`
+    <div class="inote">世帯全体の生涯収支（${60}〜${endAge}歳）を集計しています。退職所得・年金所得・配偶者収入をすべて含みます。</div>
+
+    <div class="rgrid">
+      <div class="rc go"><div class="rl">世帯 総収入</div><div class="rv g">${fmt(totalIncome)}万円</div></div>
+      <div class="rc"><div class="rl">税金 合計</div><div class="rv b">${fmt(totalTax)}万円</div></div>
+      <div class="rc"><div class="rl">社会保険料 合計</div><div class="rv b">${fmt(totalSoc)}万円</div></div>
+      <div class="rc hi"><div class="rl">税＋社保 合計</div><div class="rv b">${fmt(totalBurden)}万円</div></div>
+      <div class="rc go"><div class="rl">世帯 手残り合計</div><div class="rv g">${fmt(netIncome)}万円</div></div>
+      <div class="rc"><div class="rl">生涯負担率</div><div class="rv b">${ff(burdenRate)}%</div></div>
+    </div>
+
+    <div class="rb">
+      <div class="rb-title">収入の内訳（世帯全体）</div>
+      <table class="rt">
+        <tr><td>退職金（60歳）</td><td class="r">${fmt(retIncome)}万円</td></tr>
+        <tr><td>失業給付（非課税）</td><td class="r">${fmt(unempTotal)}万円</td></tr>
+        <tr><td>DC一時金（${d.dcAge}歳）</td><td class="r">${fmt(dcLump)}万円</td></tr>
+        <tr><td>DC年金（${d.dcAge}〜${d.dcAge+d.penYrs-1}歳・${d.penYrs}年間）</td><td class="r">${fmt(dcAnn)}万円</td></tr>
+        <tr><td>公的年金・本人（65〜${endAge}歳）</td><td class="r">${fmt(pubTotal)}万円</td></tr>
+        <tr><td>配偶者給与（〜64歳）</td><td class="r">${fmt(spSalTotal)}万円</td></tr>
+        <tr><td>配偶者給与（65歳〜）</td><td class="r">${d.spSal65>0?fmt(spSal65Total)+'万円':'未入力'}</td></tr>
+        <tr><td>配偶者公的年金（65歳〜）</td><td class="r">${d.spPen>0?fmt(spPenTotal)+'万円':'未入力'}</td></tr>
+        <tr class="tot"><td>世帯 総収入</td><td class="r" style="color:#4aad82">${fmt(totalIncome)}万円</td></tr>
+      </table>
+    </div>
+
+    <div class="rb">
+      <div class="rb-title">税金の内訳</div>
+      <table class="rt">
+        <tr><td>退職金の退職所得税（60歳）</td><td class="r">${fmt(retTaxAmt)}万円</td></tr>
+        <tr><td>DC一時金の退職所得税（${d.dcAge}歳）</td><td class="r">${fmt(lumpTaxAmt)}万円</td></tr>
+        <tr><td>年金所得税・住民税（生涯）</td><td class="r">${fmt(annTaxAmt)}万円</td></tr>
+        <tr class="tot"><td>税金 合計</td><td class="r" style="color:#e8714a">${fmt(totalTax)}万円</td></tr>
+      </table>
+    </div>
+
+    <div class="rb">
+      <div class="rb-title">社会保険料の内訳</div>
+      <table class="rt">
+        <tr><td>任意継続健保（60〜61歳）</td><td class="r">${fmt(h1Total)}万円</td></tr>
+        <tr><td>国民健康保険（62〜${d.dcAge-1}歳）</td><td class="r">${fmt(h2Total)}万円</td></tr>
+        <tr><td>国民年金任意加入（${d.nenMonths}ヶ月）</td><td class="r">${fmt(nenTotal)}万円</td></tr>
+        <tr><td>退職後健保（${d.dcAge}〜74歳）</td><td class="r">${fmt(h3Total)}万円</td></tr>
+        <tr><td>後期高齢者医療（75〜${endAge}歳・所得連動）</td><td class="r">${fmt(h4Total)}万円</td></tr>
+        <tr class="tot"><td>社会保険料 合計</td><td class="r" style="color:#e8714a">${fmt(totalSoc)}万円</td></tr>
+      </table>
+    </div>
+
+    <div class="rb">
+      <div class="rb-title">年齢帯別 収支サマリー</div>
+      <table class="rt">
+        <tr><th>期間</th><th>収入</th><th>税金</th><th>社保</th><th>税＋社保</th><th>手残り</th></tr>
+        ${periodRows}
+        <tr class="tot">
+          <td>合計（${60}〜${endAge}歳）</td>
+          <td class="r" style="color:#4aad82">${fmt(totalIncome)}万円</td>
+          <td class="r" style="color:#e8714a">${fmt(totalTax)}万円</td>
+          <td class="r" style="color:#e8714a">${fmt(totalSoc)}万円</td>
+          <td class="r" style="color:#e8714a">${fmt(totalBurden)}万円</td>
+          <td class="r" style="color:#4aad82">${fmt(netIncome)}万円</td>
+        </tr>
+      </table>
+      <p style="font-size:11px;color:rgba(250,247,242,.45);margin-top:6px">
+        ※配偶者年金が未入力（0円）の場合は収入に含まれていません。入力後に「計算する」を押してください。<br>
+        ※手残りは税・社保控除後の概算です。実際の生活費・住居費等は含みません。
+      </p>
+    </div>
+  `;
+}
+
 calcAll();
 </script>
 </body>
