@@ -256,6 +256,7 @@ p{margin-bottom:1em;color:var(--ink2)}
         <div class="ibox-title">収入・年金</div>
         <div class="irow"><label>公的年金・本人（65歳〜）</label><input type="number" id="i-pub" value="200"><span class="unit">万円/年</span></div>
         <div class="irow"><label>失業給付（非課税）</label><input type="number" id="i-unemp" value="80"><span class="unit">万円</span></div>
+        <div class="irow"><label>配偶者の年齢差<br><small style="opacity:.6">正＝配偶者が年上（国保計算に使用）</small></label><input type="number" id="i-sp-agediff" value="1"><span class="unit">歳上</span></div>
         <div class="irow"><label>配偶者給与（〜64歳）</label><input type="number" id="i-sp-sal" value="100"><span class="unit">万円/年</span></div>
         <div class="irow"><label>配偶者の公的年金（65歳〜）</label><input type="number" id="i-sp-pen" value="0"><span class="unit">万円/年</span></div>
         <div class="irow"><label>配偶者の給与（65歳〜）</label><input type="number" id="i-sp-sal65" value="0"><span class="unit">万円/年</span></div>
@@ -264,7 +265,7 @@ p{margin-bottom:1em;color:var(--ink2)}
       <div class="ibox">
         <div class="ibox-title">社会保険料（月額・円）</div>
         <div class="irow"><label>任意継続健保（60〜61歳）</label><input type="number" id="i-h1" value="30000"><span class="unit">円/月</span></div>
-        <div class="irow"><label>国民健康保険（62〜64歳）</label><input type="number" id="i-h2" value="11275"><span class="unit">円/月</span></div>
+        <div class="irow"><label>国民健康保険（62〜dcAge歳）<br><small style="opacity:.6">流山市料率で自動計算<br>（DC年金＋配偶者給与の世帯所得反映）</small></label><span style="font-size:12px;color:rgba(250,247,242,.6);min-width:95px;text-align:right">③年齢別で確認</span><input type="hidden" id="i-h2" value="0"></div>
         <div class="irow"><label>国民年金任意加入（月額）</label><input type="number" id="i-nen" value="16980"><span class="unit">円/月</span></div>
         <div class="irow"><label>退職後健保（65〜74歳）</label><input type="number" id="i-h3" value="25000"><span class="unit">円/月</span></div>
         <div class="irow"><label>後期高齢者医療（75歳〜）<br><small style="opacity:.6">千葉県令和8年度料率で自動計算<br>医療分：均等割5.1万＋所得割9.40%<br>支援金分：均等割0.131万＋所得割0.25%<br>夫婦2人分・賦課所得＝年金雑所得−43万</small></label><span style="font-size:12px;color:rgba(250,247,242,.6);min-width:95px;text-align:right">④生涯サマリーで確認</span><span class="unit"></span></div>
@@ -323,30 +324,84 @@ function mimashi(ret){if(ret<=800)return Math.floor(ret/40);return Math.floor((r
 function pCtrl65(tot){if(tot<=0)return 0;if(tot<330)return 110;if(tot<410)return tot*0.25+27.5;if(tot<770)return tot*0.15+68.5;if(tot<1000)return tot*0.05+145.5;return 195.5;}
 function salCtrl(s){if(s<=55)return 55;if(s<=180)return s*0.4-10;if(s<=360)return s*0.3+8;if(s<=660)return s*0.2+44;if(s<=850)return s*0.1+110;return 195;}
 
+// ===== 流山市 国民健康保険料（世帯合計・万円/年）=====
+// 令和7年度料率：医療7.30%+支援3.23%+介護1.60%（40〜64歳）
+// 均等割：医療19,200円・支援12,700円・介護12,600円（各1人）
+// 平等割：医療15,600円（世帯）
+// 賦課所得 = 各所得（給与所得 or 年金雑所得）- 基礎控除43万円
+
+// 給与所得計算
+function salIncome(sal){
+  if(sal<=0) return 0;
+  if(sal<=162.5) return Math.max(0,sal-55);
+  if(sal<=180) return sal*0.6;
+  if(sal<=360) return sal*0.7-8;
+  if(sal<=660) return sal*0.8-44;
+  if(sal<=850) return sal*0.9-110;
+  return sal-195;
+}
+
+// 65歳未満の公的年金等控除
+function pCtrl64(tot){
+  if(tot<=0) return 0;
+  if(tot<130) return 60;
+  if(tot<410) return tot*0.25+27.5;
+  if(tot<770) return tot*0.15+68.5;
+  return 195.5;
+}
+
+// 流山市国保料（世帯合計・万円/年）
+function nagareyamaKokuho(honAnn, honAge, spSal, spAge){
+  // 本人賦課所得（DC年金または年金）
+  let honBase = 0;
+  if(honAnn > 0){
+    const ctrl = pCtrl64(honAnn);
+    const zatsu = Math.max(0, honAnn - ctrl);
+    honBase = Math.max(0, zatsu - 43);
+  }
+  // 配偶者賦課所得（給与）
+  const spBase = spSal > 0 ? Math.max(0, salIncome(spSal) - 43) : 0;
+  const totalBase = honBase + spBase;
+  const members = 2;
+  const kaigoMembers = (honAge>=40&&honAge<=64?1:0) + (spAge>=40&&spAge<=64?1:0);
+
+  const iryo  = Math.min(totalBase*0.073 + 1.92*members + 1.56, 65);
+  const shien = Math.min(totalBase*0.0323 + 1.27*members, 24);
+  const kaigo = kaigoMembers>0 ? Math.min(totalBase*0.016 + 1.26*kaigoMembers, 17) : 0;
+  return iryo + shien + kaigo;
+}
+
 // 後期高齢者保険料を所得連動で計算（千葉県令和8年度料率）
 // 医療分：均等割51,000円 + 所得割9.40% 上限85万円
 // 支援金分：均等割1,310円 + 所得割0.25% 上限2.1万円
-// 賦課のもととなる所得 = 年金雑所得（公的年金等控除後）- 基礎控除43万円
-// ※医療費控除・社会保険料控除等は控除不可
+// 賦課のもととなる所得 = 年金雑所得 - 基礎控除43万円
 function koukiPrem(penInc){
-  const base = Math.max(0, penInc - 43); // 基礎控除43万円のみ
-  const iryo    = Math.min(5.10 + base * 0.094,  85);  // 医療分（上限85万）
-  const kosodate= Math.min(0.131 + base * 0.0025, 2.1); // 支援金分（上限2.1万）
+  const base = Math.max(0, penInc - 43);
+  const iryo    = Math.min(5.10 + base * 0.094,  85);
+  const kosodate= Math.min(0.131 + base * 0.0025, 2.1);
   return iryo + kosodate; // 1人分の年額（万円）
 }
 
-function socPrem(age, dcAge, penInc){
-  const h1=gi('i-h1')*12/10000,h2=gi('i-h2')*12/10000,nen=gi('i-nen')*12/10000,h3=gi('i-h3')*12/10000;
+function socPrem(age, dcAge, penInc, dcAnn){
+  const h1=gi('i-h1')*12/10000, nen=gi('i-nen')*12/10000, h3=gi('i-h3')*12/10000;
   const da=dcAge||65;
   const hasNen=age<da;
-  let h=0,n=0;
-  if(age<=61){h=h1;}
-  else if(age<da){h=h2;}
-  else if(age<=74){h=h3;}
-  else{
-    // 75歳以降：所得連動の後期高齢者保険料（1人分）× 2人
+  let h=0, n=0;
+
+  if(age<=61){
+    h=h1; // 任意継続健保
+  } else if(age<da){
+    // 国保：流山市料率で本人DC年金＋配偶者収入から計算
+    const spSalNow = age<65 ? gi('i-sp-sal') : gi('i-sp-sal65');
+    const spAge = age+(gi('i-sp-agediff')||1);
+    const dcAnnNow = dcAnn||0;
+    h = nagareyamaKokuho(dcAnnNow, age, spSalNow, spAge);
+  } else if(age<=74){
+    h=h3; // 退職後健保
+  } else {
+    // 後期高齢者：所得連動（夫婦2人分）
     const pi=penInc||0;
-    h=koukiPrem(pi)*2; // 夫婦2人分
+    h=koukiPrem(pi)*2;
   }
   if(hasNen) n=nen;
   return{h,n,t:h+n};
@@ -372,7 +427,7 @@ function annTaxFull(age,dcAnn,pubInc,med,life,quake,other,spPen,spSal65,dcAge,ne
     penInc=Math.max(0,tot-ctrl);
   }
   // 後期高齢者保険料は年金雑所得(penInc)に連動して計算
-  const s=socPrem(age,da,penInc);
+  const s=socPrem(age,da,penInc,dcAnn);
   const bdIT=48+s.t+med+life+quake+other;
   const bdJT=43+s.t+med+life+quake+other;
   if(age>=65){
