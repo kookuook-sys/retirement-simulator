@@ -635,7 +635,7 @@ function buildLifetime(){
     <div class="rb"><div class="rb-title">社会保険料内訳</div>
     <table class="rt">
       <tr><td>任意継続健保（60〜61歳）</td><td class="r">${fmt(gi('i-h1')*24/10000)}万円</td></tr>
-      <tr><td>国民健康保険（62〜${d.dcAge-1}歳）</td><td class="r">${fmt(gi('i-h2')*(d.dcAge-62)*12/10000)}万円</td></tr>
+      <tr><td>国民健康保険（62〜${d.dcAge-1}歳）</td><td class="r">${fmt(d.yearData.filter(x=>x.age>=62&&x.age<d.dcAge).reduce((s,x)=>s+x.soc.h,0))}万円</td></tr>
       <tr><td>国民年金任意加入（${d.nenMonths}ヶ月）</td><td class="r">${ff(gi('i-nen')*d.nenMonths/10000)}万円</td></tr>
       <tr><td>退職後健保（${d.dcAge}〜74歳）</td><td class="r">${fmt(gi('i-h3')*(75-d.dcAge)*12/10000)}万円</td></tr>
       <tr><td>後期高齢者（75〜${d.endAge}歳・所得連動）<br>
