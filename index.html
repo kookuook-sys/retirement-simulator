@@ -254,7 +254,10 @@ p{margin-bottom:1em;color:var(--ink2)}
       </div>
       <div class="ibox">
         <div class="ibox-title">収入・年金</div>
-        <div class="irow"><label>公的年金・本人（65歳〜）</label><input type="number" id="i-pub" value="200"><span class="unit">万円/年</span></div>
+        <div class="irow"><label>公的年金・本人（65歳時点の金額）</label><input type="number" id="i-pub" value="200"><span class="unit">万円/年</span></div>
+        <div class="irow"><label>繰り上げ受給開始年齢<br><small style="opacity:.6">65歳＝通常受給（繰り上げなし）<br>60〜64歳＝減額して早期受給</small></label><input type="number" id="i-pub-start" value="65" min="60" max="65" oninput="onPubStartChange()"><span class="unit">歳</span></div>
+        <div class="irow"><label>繰り上げ減額率<br><small style="opacity:.6">自動計算（1ヶ月0.4%×繰上月数）</small></label><input type="number" id="i-pub-reduce" value="0" readonly style="opacity:.7"><span class="unit">%減額</span></div>
+        <div class="irow"><label>繰り上げ後の年金額<br><small style="opacity:.6">自動計算</small></label><input type="number" id="i-pub-actual" value="200" readonly style="opacity:.7"><span class="unit">万円/年</span></div>
         <div class="irow"><label>失業給付（非課税）</label><input type="number" id="i-unemp" value="80"><span class="unit">万円</span></div>
         <div class="irow"><label>配偶者の年齢差<br><small style="opacity:.6">正＝配偶者が年上（国保計算に使用）</small></label><input type="number" id="i-sp-agediff" value="1"><span class="unit">歳上</span></div>
         <div class="irow"><label>配偶者給与（〜64歳）</label><input type="number" id="i-sp-sal" value="100"><span class="unit">万円/年</span></div>
@@ -470,6 +473,18 @@ function onDCageChange(){
   document.getElementById('i-nenmonths').value=nenMonths;
 }
 
+// 繰り上げ受給の減額率・受取額を自動計算
+function onPubStartChange(){
+  const startAge = Math.min(65, Math.max(60, parseInt(document.getElementById('i-pub-start').value)||65));
+  document.getElementById('i-pub-start').value = startAge;
+  const months = (65 - startAge) * 12; // 繰り上げ月数
+  const reduceRate = months * 0.4;     // 減額率（%）
+  const pubBase = gi('i-pub');          // 65歳時点の年金額
+  const pubActual = Math.round(pubBase * (1 - reduceRate/100) * 10) / 10;
+  document.getElementById('i-pub-reduce').value = reduceRate.toFixed(1);
+  document.getElementById('i-pub-actual').value = pubActual.toFixed(1);
+}
+
 // DC受取年齢から勤続年数（DC控除用）を自動計算
 function calcDCyrs(retireYrs, dcAge){
   // 定年60歳＋(dcAge-60)年延長 → retireYrs+(dcAge-60)
@@ -485,7 +500,18 @@ function calcAll(){
   // DC受取時の勤続年数（退職時勤続年数＋延長年数）
   const dcyrs=calcDCyrs(yrs, dcAge);
 
-  const lumpIn=gi('i-lump'),penYrs=gi('i-pyrs'),pub=gi('i-pub');
+  const lumpIn=gi('i-lump'),penYrs=gi('i-pyrs');
+  // 繰り上げ受給の計算
+  const pubBase   = gi('i-pub');                // 65歳時点の年金額
+  const pubStart  = Math.min(65,Math.max(60,gi('i-pub-start')||65)); // 受給開始年齢
+  const pubMonths = (65-pubStart)*12;           // 繰り上げ月数
+  const pubReduce = pubMonths*0.004;            // 減額率（小数）
+  const pubActual = pubBase*(1-pubReduce);      // 実際の受取額
+  // UI更新
+  document.getElementById('i-pub-start').value = pubStart;
+  document.getElementById('i-pub-reduce').value = (pubMonths*0.4).toFixed(1);
+  document.getElementById('i-pub-actual').value = pubActual.toFixed(1);
+  const pub = pubActual; // 以降はpubActualを使用
   const spSal=gi('i-sp-sal'),spPen=gi('i-sp-pen'),spSal65=gi('i-sp-sal65');
   const med=gi('i-med'),life=gi('i-life'),quake=gi('i-quake'),other=gi('i-other');
   const endAge=gi('i-end')||90;
@@ -510,8 +536,8 @@ function calcAll(){
   const yd=ages.map(age=>{
     // DC年金はdcAge歳から(dcAge+penYrs-1)歳まで
     const dca=(age>=dcAge&&age<dcAge+penYrs)?ann:0;
-    // 公的年金は65歳から
-    const pubInc=age>=65?pub:0;
+    // 公的年金は繰り上げ受給開始年齢から（減額後の金額）
+    const pubInc=age>=pubStart?pub:0;
     const r=annTaxFull(age,dca,pubInc,med,life,quake,other,spPen,spSal65,dcAge,nenMonths);
     let tot=r.total;
     if(age===60)tot+=retTax;
@@ -521,10 +547,11 @@ function calcAll(){
       retTax:age===60?retTax:0,lumpTax:age===dcAge?lumpTax:0,dcAge};
   });
 
-  G={ret,yrs,dc,dcyrs,dcAge,nenMonths,dcCtrlFull,mYrs,mCtrl,dcCtrl,rc36,retTaxable,retTax,lump,lumpTax,ann,penYrs,pub,spSal,spPen,spSal65,med,life,quake,other,yearData:yd,endAge,
+  G={ret,yrs,dc,dcyrs,dcAge,nenMonths,dcCtrlFull,mYrs,mCtrl,dcCtrl,rc36,retTaxable,retTax,lump,lumpTax,ann,penYrs,pub,pubBase,pubStart,pubActual,pubReduce,pubMonths,spSal,spPen,spSal65,med,life,quake,other,yearData:yd,endAge,
     lifeTax:yd.reduce((s,d)=>s+d.totalTax,0),lifeSoc:yd.reduce((s,d)=>s+d.soc.t,0)};
 
-  document.getElementById('c-prev').innerHTML=`<div class="inote">✓ 計算完了｜DC受取年齢 <strong style="color:#e8714a">${dcAge}歳</strong>、国民年金任意加入 <strong>${nenMonths}ヶ月</strong>、DC控除（19年ルール後）<strong>${fmt(dcCtrl)}万円</strong>、最適一時金 <strong>${fmt(lump)}万円</strong>、年金 <strong>${ff(ann)}万円/年×${penYrs}年</strong><br>各タブで詳細をご確認ください。</div>`;
+  const pubMsg = pubStart<65 ? `、公的年金<strong style='color:#e8714a'>${pubStart}歳から繰り上げ</strong>（${(pubMonths*0.4).toFixed(1)}%減額→年${pubActual.toFixed(1)}万円）` : '、公的年金65歳から通常受給';
+  document.getElementById('c-prev').innerHTML=`<div class="inote">✓ 計算完了｜DC受取年齢 <strong style="color:#e8714a">${dcAge}歳</strong>、国民年金任意加入 <strong>${nenMonths}ヶ月</strong>、DC控除（19年ルール後）<strong>${fmt(dcCtrl)}万円</strong>、最適一時金 <strong>${fmt(lump)}万円</strong>、年金 <strong>${ff(ann)}万円/年×${penYrs}年</strong>${pubMsg}<br>各タブで詳細をご確認ください。</div>`;
 
   buildDC(); buildAnnual(); buildLifetime();
   if(document.getElementById('tc').classList.contains('active'))buildCharts();
@@ -559,7 +586,7 @@ function buildDC(){
     <div class="rb"><div class="rb-title">65歳 年金所得の計算</div>
     <table class="rt">
       <tr><td>DC年金/年</td><td class="r">${ff(d.ann)}万円</td></tr>
-      <tr><td>公的年金/年</td><td class="r">${fmt(d.pub)}万円</td></tr>
+      <tr><td>公的年金/年（${d.pubStart}歳〜）</td><td class="r">${ff(d.pub)}万円${d.pubStart<65?'<span style="font-size:10px;color:#e8714a">（65歳基準${fmt(d.pubBase)}万から${(d.pubMonths*0.4).toFixed(1)}%減額）</span>':''}</td></tr>
       <tr><td>合算年金収入</td><td class="r">${ff(d.ann+d.pub)}万円</td></tr>
       <tr><td>公的年金等控除</td><td class="r">${ff(pc)}万円</td></tr>
       <tr><td>社会保険料控除</td><td class="r">${ff(rDC.soc&&rDC.soc.t||0)}万円</td></tr>
@@ -623,6 +650,7 @@ function buildLifetime(){
 function buildCharts(){
   const d=G.yearData,labels=d.map(x=>x.age+'歳');
   const lumps=d.map(x=>x.age===G.dcAge?Math.round(G.lump):x.age===60?Math.round(G.ret):0);
+  // myIncはyearDataで既にpubStart考慮済み
   const anns=d.map(x=>Math.round(x.myInc));
   const sps=d.map(x=>Math.round(x.spInc));
   const taxN=d.map(x=>-Math.round(x.totalTax));
@@ -664,7 +692,7 @@ function buildBS(){
   const retIncome   = d.ret;                                      // 退職金
   const dcLump      = d.lump;                                     // DC一時金
   const dcAnn       = (d.dc-d.lump);                             // DC年金総額
-  const pubTotal    = d.pub*(endAge-64);                          // 本人公的年金
+  const pubTotal    = d.pub*(endAge-(d.pubStart-1));               // 本人公的年金（繰り上げ開始年齢から）
   const spSalTotal  = d.spSal*Math.min(5,65-60);                 // 配偶者給与〜64歳
   const spSal65Total= d.spSal65*(endAge-64);                     // 配偶者給与65歳〜
   const spPenTotal  = d.spPen*(endAge-64);                       // 配偶者年金
@@ -744,7 +772,7 @@ function buildBS(){
         <tr><td>失業給付（非課税）</td><td class="r">${fmt(unempTotal)}万円</td></tr>
         <tr><td>DC一時金（${d.dcAge}歳）</td><td class="r">${fmt(dcLump)}万円</td></tr>
         <tr><td>DC年金（${d.dcAge}〜${d.dcAge+d.penYrs-1}歳・${d.penYrs}年間）</td><td class="r">${fmt(dcAnn)}万円</td></tr>
-        <tr><td>公的年金・本人（65〜${endAge}歳）</td><td class="r">${fmt(pubTotal)}万円</td></tr>
+        <tr><td>公的年金・本人（${d.pubStart}〜${endAge}歳）${d.pubStart<65?'<br><small style="opacity:.7">繰り上げ'+( d.pubMonths*0.4).toFixed(1)+'%減額・65歳基準'+fmt(d.pubBase)+'万円/年</small>':''}</td><td class="r">${fmt(pubTotal)}万円</td></tr>
         <tr><td>配偶者給与（〜64歳）</td><td class="r">${fmt(spSalTotal)}万円</td></tr>
         <tr><td>配偶者給与（65歳〜）</td><td class="r">${d.spSal65>0?fmt(spSal65Total)+'万円':'未入力'}</td></tr>
         <tr><td>配偶者公的年金（65歳〜）</td><td class="r">${d.spPen>0?fmt(spPenTotal)+'万円':'未入力'}</td></tr>
