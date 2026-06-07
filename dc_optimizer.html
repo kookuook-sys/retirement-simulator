@@ -164,14 +164,14 @@ p{margin-bottom:1em;color:var(--ink2)}
       <div class="irow"><label>退職金（万円・60歳）</label><input type="number" id="i-ret" value="1100"><span class="unit">万円</span></div>
       <div class="irow"><label>勤続年数（退職時）</label><input type="number" id="i-yrs" value="36"><span class="unit">年</span></div>
       <div class="irow"><label>DC積立残高</label><input type="number" id="i-dc" value="5500"><span class="unit">万円</span></div>
-      <div class="irow"><label>任意加入+iDeCo<br><small style="opacity:.6">65歳受取時のみ有効</small></label>
+      <div class="irow"><label>国民年金 任意加入+iDeCo<br><small style="opacity:.6">60歳以降に国民年金の未加入期間がある方</small></label>
         <select id="i-ninchi">
-          <option value="1">あり（54ヶ月）</option>
+          <option value="1">あり</option>
           <option value="0">なし</option>
         </select><span class="unit"></span>
       </div>
-      <div class="irow"><label>任意加入月数</label><input type="number" id="i-nmonths" value="54"><span class="unit">ヶ月</span></div>
-      <div class="irow"><label>任意加入月額</label><input type="number" id="i-nen" value="18000"><span class="unit">円/月</span></div>
+      <div class="irow"><label>任意加入月数<br><small style="opacity:.6">学生期間の未加入等の月数<br>上限60ヶ月（5年）</small></label><input type="number" id="i-nmonths" value="0" min="0" max="60"><span class="unit">ヶ月</span></div>
+      <div class="irow"><label>国民年金 任意加入月額<br><small style="opacity:.6">令和7年度：16,980円</small></label><input type="number" id="i-nen" value="16980"><span class="unit">円/月</span></div>
     </div>
     <div class="ibox">
       <div class="ibox-title">公的年金</div>
@@ -197,7 +197,8 @@ p{margin-bottom:1em;color:var(--ink2)}
         </select><span class="unit"></span>
       </div>
       <div class="irow"><label>退職者健保 月額</label><input type="number" id="i-h3" value="30000"><span class="unit">円/月</span></div>
-      <div class="irow"><label>国民年金任意加入月額</label><input type="number" id="i-nenkm" value="18000"><span class="unit">円/月</span></div>
+      <div class="irow"><label>国民年金任意加入月額<br><small style="opacity:.6">令和7年度：16,980円</small></label><input type="number" id="i-nenkm" value="16980"><span class="unit">円/月</span></div>
+      <div class="irow"><label>iDeCo掛金<br><small style="opacity:.6">DC受取開始まで拠出（DC残高に加算）</small></label><input type="number" id="i-ideco" value="5000"><span class="unit">円/月</span></div>
     </div>
     <div class="ibox">
       <div class="ibox-title">各種控除（年額・万円）</div>
@@ -355,7 +356,7 @@ function calcSoc(age,dcAge,penInc,dcAnn,useNinchi,P){
   if(useNinchi&&age<dcAge){
     // 任意加入は合計nenMonthsヶ月（デフォルト54ヶ月）
     // 60〜63歳：12ヶ月/年、64歳：残り月数
-    const ninchiMonths=gi('i-nmonths')||54;
+    const ninchiMonths=gi('i-nmonths')||0;
     const fullYears=Math.floor(ninchiMonths/12);   // 完全年数（4年）
     const remainMonths=ninchiMonths%12;             // 残り月数（6ヶ月）
     const agesSince60=age-60;
@@ -405,9 +406,10 @@ function annualTax(age,dcAnn,dcAge,pubInc,P,useNinchi){
 function simulate(dcAge,penYrs,pubStart,pub,useNinchi,P){
   const sameYear=dcAge===60;
   const ctrl36=retCtrl(36);
-  // iDeCo拠出分をDC残高に加算：月5,000円×12ヶ月×(dcAge-60)年 = 6万円/年×年数
-  const iDecoContrib=useNinchi?0.5*12/10000*12*(dcAge-60):0; // 0.5万×12=6万/年
-  const dcTotal=useNinchi?P.dc+6*(dcAge-60):P.dc;
+  // iDeCo拠出額をDC残高に加算（月額×12ヶ月×年数）
+  const iDecoMonthly=gi('i-ideco')||5000;
+  const iDecoContrib=useNinchi?iDecoMonthly*12*(dcAge-60)/10000:0;
+  const dcTotal=useNinchi?P.dc+iDecoContrib:P.dc;
 
   let dcCtrl,retTax,lump,lumpTax;
   if(sameYear){
@@ -553,7 +555,7 @@ function renderResults(top,total,P){
     const badgeClass=i===0?'g':i===1?'s':'b';
     const medal=i<3?medals[i]:`${i+1}位`;
     const pubLabel=r.pubStart<65?`${r.pubStart}歳繰り上げ（${((65-r.pubStart)*4.8).toFixed(1)}%減）`:`65歳通常受給`;
-    const ninchiMonths=gi('i-nmonths')||54;
+    const ninchiMonths=gi('i-nmonths')||0;
     const ninchiLabel=r.useNinchi?`任意加入${ninchiMonths}ヶ月+iDeCo`:'任意加入なし';
     const dcCtrlLabel=r.sameYear?`${fmt(r.dcCtrl)}万（合算）`:`${fmt(r.dcCtrl)}万（分離）`;
     const title=`DC${r.dcAge}歳受取・${r.penYrs}年年金 ／ 公的年金${pubLabel} ／ ${ninchiLabel}`;
