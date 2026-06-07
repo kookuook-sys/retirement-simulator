@@ -122,7 +122,7 @@ p{margin-bottom:1em;color:var(--ink2)}
     <span class="hero-badge">19年ルール対応</span>
     <span class="hero-badge">全パターン自動探索</span>
     <span class="hero-badge">介護保険料反映</span>
-    <span class="hero-badge">流山市国保料自動計算</span>
+    <span class="hero-badge">国保料自動計算</span>
     <span class="hero-badge">繰り上げ受給対応</span>
     <span class="hero-badge">生涯収支サマリー</span>
   </div>
@@ -155,7 +155,7 @@ p{margin-bottom:1em;color:var(--ink2)}
 <div class="sim-inner">
   <div class="sim-hdr">
     <h2>退職金・DC・公的年金 最適受取シミュレーター</h2>
-    <p>数値を入力して「最適解を探索する」を押してください。1,000通り以上のパターンを全自動計算し、手残りの多い順にランキング表示します。</p>
+    <p>数値を入力して「最適解を探索する」を押してください。1,000通り以上のパターンを全自動計算し、手残りの多い順にランキング表示します（国保料は市区町村標準料率で概算）。</p>
   </div>
 
   <div class="igrid">
@@ -193,7 +193,7 @@ p{margin-bottom:1em;color:var(--ink2)}
       <div class="irow"><label>65歳〜74歳の健保<br><small style="opacity:.6">退職者健保or国保</small></label>
         <select id="i-h3type">
           <option value="fixed">退職者健保（月額入力）</option>
-          <option value="kokuho">国民健康保険（流山市・自動）</option>
+          <option value="kokuho">国民健康保険（・自動）</option>
         </select><span class="unit"></span>
       </div>
       <div class="irow"><label>退職者健保 月額</label><input type="number" id="i-h3" value="30000"><span class="unit">円/月</span></div>
@@ -285,7 +285,7 @@ function salInc(sal){
   return sal*0.9-110;
 }
 
-// 流山市国保料（65歳未満・世帯合計）
+// 国保料（65歳未満・世帯合計）
 function nagareyamaKokuho(honAnn,honAge,spSal,spAge){
   let honBase=0;
   if(honAnn>0){const ctrl=pCtrl64(honAnn);honBase=Math.max(0,Math.max(0,honAnn-ctrl)-43);}
@@ -298,7 +298,7 @@ function nagareyamaKokuho(honAnn,honAge,spSal,spAge){
   return iryo+shien+kaigo;
 }
 
-// 流山市国保料（65〜74歳・65歳以上の公的年金控除適用）
+// 国保料（65〜74歳・65歳以上の公的年金控除適用）
 function nagareyamaKokuho65(penInc65,age,spSal65,spPen,spAge){
   const honBase=Math.max(0,penInc65-43);
   const spInc=spSal65>0?salInc(spSal65):(spPen>0?Math.max(0,spPen-pCtrl65(spPen)):0);
@@ -315,7 +315,7 @@ function koukiPrem1(penInc){
   return Math.min(5.10+base*0.094,85)+Math.min(0.131+base*0.0025,2.1);
 }
 
-// 流山市介護保険料（65歳以上・1人分・万円/年）
+// 介護保険料（65歳以上・1人分・万円/年）
 function kaigoPrem(taxableIncome){
   // taxableIncome：住民税の課税所得（合計所得金額）
   if(taxableIncome<0)return 1.58; // 第1段階
