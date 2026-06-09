@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>子供の教育費シミュレーター</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
+:root{--bg:#F7F5F0;--sv:#FFF;--s2:#F0EDE7;--bd:#DDD9D1;--tx:#1A1714;--tx2:#6B6560;--tx3:#9B968F;--ac:#C84B2F;--r:8px;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:'Noto Sans JP',sans-serif;font-size:14px;line-height:1.6}
+.wrap{max-width:780px;margin:0 auto;padding:24px 16px 60px}
+.hero{text-align:center;padding:28px 0 20px;border-bottom:1px solid var(--bd);margin-bottom:24px}
+.hero-ey{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--tx3);margin-bottom:8px}
+.hero h1{font-size:24px;font-weight:700;margin-bottom:8px}
+.hero h1 em{font-style:normal;color:var(--ac)}
+.hero p{font-size:13px;color:var(--tx2);max-width:480px;margin:0 auto}
+.card{background:var(--sv);border:1px solid var(--bd);border-radius:var(--r);padding:18px 20px;margin-bottom:14px}
+.ctitle{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.ctitle::before{content:'';display:inline-block;width:3px;height:12px;background:var(--ac);border-radius:2px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tab{font-size:13px;padding:5px 13px;border:1px solid var(--bd);border-radius:20px;cursor:pointer;background:var(--sv);color:var(--tx2);font-family:inherit;transition:all .15s}
+.tab:hover{border-color:var(--ac);color:var(--ac)}
+.tab.active{background:var(--ac);color:#fff;border-color:var(--ac)}
+.tab-del{font-size:10px;padding:1px 5px;border:1px solid rgba(255,255,255,.5);border-radius:8px;cursor:pointer;background:transparent;color:rgba(255,255,255,.8);margin-left:3px;font-family:inherit}
+.tab-add{font-size:12px;padding:5px 12px;border:1px dashed var(--bd);border-radius:20px;cursor:pointer;background:transparent;color:var(--tx3);font-family:inherit;transition:all .15s}
+.tab-add:hover{border-color:var(--ac);color:var(--ac)}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px}
+.fr{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.fr label{font-size:13px;color:var(--tx2);min-width:148px}
+.sel-wrap{position:relative;width:100%}
+.sel-wrap select{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:2;}
+.sel-face{border:1px solid var(--bd);border-radius:6px;background:var(--sv);padding:7px 28px 7px 10px;font-size:13px;font-family:'Noto Sans JP',sans-serif;color:var(--tx);line-height:1.4;pointer-events:none;position:relative;}
+.sel-face::after{content:'▾';position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--tx3);font-size:11px;}
+.sel-wrap select:focus+.sel-face{border-color:var(--ac)}
+.fr input[type=number],.fr input[type=text]{font-size:13px;font-family:'Noto Sans JP',sans-serif;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--sv);color:var(--tx);outline:none;}
+.fr input:focus{border-color:var(--ac)}
+.fr input[type=checkbox]{width:15px;height:15px;accent-color:var(--ac);cursor:pointer;flex-shrink:0}
+.fr input[type=radio]{accent-color:var(--ac);cursor:pointer}
+.fsub{padding-left:18px}
+.snote{font-size:11px;color:var(--tx3);background:var(--s2);border-radius:5px;padding:5px 9px;margin-top:2px;margin-bottom:6px;line-height:1.5}
+.auto-note{font-size:11px;background:#FEF3E2;border:1px solid #F4C76A;border-radius:5px;padding:6px 10px;margin-bottom:8px;color:#7A4F00;line-height:1.5;display:flex;align-items:flex-start;gap:6px}
+.slbl{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);margin:12px 0 6px}
+.act-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.act-row{background:var(--s2);border-radius:6px;padding:7px 9px;display:flex;flex-direction:column;gap:5px}
+.act-top{display:flex;align-items:center;gap:6px}
+.act-top input[type=checkbox]{width:14px;height:14px;accent-color:var(--ac);cursor:pointer;flex-shrink:0}
+.act-lbl{font-size:12px;font-weight:500;color:var(--tx2)}
+.act-bot{display:flex;align-items:center;gap:5px;padding-left:20px}
+.act-yr{width:44px;height:28px;font-size:13px;padding:2px 6px;border:1px solid var(--bd);border-radius:4px;background:var(--sv);color:var(--tx);font-family:'DM Mono',monospace;outline:none;text-align:center}
+.act-yr:focus{border-color:var(--ac)}
+.act-unit{font-size:12px;color:var(--tx3)}
+.btn{width:100%;padding:11px;background:var(--ac);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.04em;transition:opacity .15s;margin-top:4px}
+.btn:hover{opacity:.88}
+.mg{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px}
+.mc{background:var(--s2);border-radius:var(--r);padding:12px 14px;border:1px solid var(--bd)}
+.mc.tot{background:var(--tx);color:#fff;border-color:var(--tx)}
+.mc .ml{font-size:11px;color:var(--tx3);margin-bottom:3px}
+.mc.tot .ml{color:rgba(255,255,255,.6)}
+.mc .mv{font-size:19px;font-weight:700;font-family:'DM Mono',monospace}
+.mc.tot .mv{font-size:21px}
+.bw{margin-bottom:9px}
+.bh{display:flex;justify-content:space-between;font-size:12px;color:var(--tx2);margin-bottom:2px}
+.bb{height:13px;background:var(--s2);border-radius:3px;overflow:hidden}
+.bf{height:100%;border-radius:3px;transition:width .5s}
+.cw{position:relative;width:100%;margin-top:8px}
+.lg{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--tx2);margin-bottom:6px}
+.lg span{display:flex;align-items:center;gap:3px}
+.ld{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+.ll{width:18px;height:3px;border-radius:2px;flex-shrink:0}
+.tw{overflow-x:auto}
+.dt{width:100%;min-width:500px;border-collapse:collapse;font-size:12px}
+.dt th{text-align:left;padding:6px 7px;border-bottom:2px solid var(--bd);color:var(--tx2);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.dt td{padding:5px 7px;border-bottom:1px solid var(--bd)}
+.dt tr:hover td{background:var(--s2)}
+.dt .tr td{font-weight:700;background:var(--s2);border-top:2px solid var(--bd)}
+.bg{display:inline-block;font-size:10px;padding:2px 6px;border-radius:3px;font-weight:700}
+.nt{font-size:11px;color:var(--tx3);margin-top:8px;line-height:1.7;padding:9px 10px;background:var(--s2);border-radius:6px;border-left:3px solid var(--bd)}
+.dv{height:1px;background:var(--bd);margin:14px 0}
+@media(max-width:500px){.fg{grid-template-columns:1fr}.act-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="hero">
+  <div class="hero-ey">Education Cost Simulator</div>
+  <h1>子供の<em>教育費</em>シミュレーター</h1>
+  <p>保育園から大学院まで、習い事・塾・受験料・通学費・行事積立を含む生涯教育費を試算。最大4人まで同時比較。</p>
+</div>
+<div class="card">
+  <div class="ctitle">子供の設定</div>
+  <div class="tabs" id="tabBar"></div>
+  <div id="childForms"></div>
+</div>
+<button class="btn" onclick="calculate()">試算する →</button>
+<div id="results" style="display:none;margin-top:16px">
+  <div class="card"><div class="ctitle">合計費用サマリー</div><div class="mg" id="metricGrid"></div><div class="dv"></div><div id="barCharts"></div><div class="nt" id="noteText"></div></div>
+  <div class="card"><div class="ctitle">年次キャッシュフロー — 個人別（万円／年）</div><div class="lg" id="leg1"></div><div class="cw" style="height:230px"><canvas id="ch1"></canvas></div></div>
+  <div class="card"><div class="ctitle">年次キャッシュフロー — 合計（万円／年）</div><div class="lg" id="leg2"></div><div class="cw" style="height:230px"><canvas id="ch2"></canvas></div></div>
+  <div class="card"><div class="ctitle">費用内訳（ステージ別・万円）</div><div class="tw"><table class="dt" id="dtbl"></table></div></div>
+</div>
+</div>
+<script>
+const AL=['swim','piano','ballet','soroban','english','sports','art','gymnastics','kumon'];
+const ALB={swim:'スイミング',piano:'ピアノ',ballet:'バレエ・ダンス',soroban:'そろばん',english:'英会話',sports:'スポーツ系',art:'絵画・工作',gymnastics:'体操教室',kumon:'公文式'};
+const CMT={near:{j:3,u:8},mid:{j:6,u:15},far:{j:10,u:22},vfar:{j:13,u:30}};
+const JT={
+  pub:{l:'公立中→公立高',j3:15,h3:12,ex:0,hj:true,te:false,fz:false,ko:false,n:'授業料無償。実費（給食・教材・修旅積立等）6年約27万。高校受験対策塾別途。'},
+  koritsu_ikkann:{l:'公立中高一貫（小石川・桜修館等）',j3:10,h3:8,ex:0,hj:false,te:false,fz:false,ko:true,n:'学費実費6年18万。受検対策塾5〜6年で90万＋大学受験塾が別途かかるケースが多い。'},
+  chiho:{l:'郊外型私立一貫（開智・市川等）',j3:335,h3:310,ex:0,hj:false,te:false,fz:false,ko:false,n:'授業料・施設費・部活・行事・教科書・制服・修旅積立込みで年100万程度。高校塾不要。'},
+  toshi:{l:'都内進学校型（海城・麻布・開成等）',j3:310,h3:280,ex:20,hj:false,te:true,fz:false,ko:false,n:'授業料・施設費年95万。別途：修学旅行・海外研修・積立金等年約20万。鉄緑会等（任意）は中高6年で最大360万。'},
+  fuzoku:{l:'私立中高大付属（慶應・早稲田・青学等）',j3:370,h3:320,ex:25,hj:false,te:false,fz:true,ko:false,n:'学費（慶應普通部3年370万・高校3年320万）。別途：クラス費・海外研修・積立金等年約25万。大学受験不要。'},
+};
+const NURSERY={
+  pub_hoiku: {cost:18,  label:'認可保育園・公立（3年 18万）'},
+  priv_hoiku:{cost:24,  label:'認可保育園・私立（3年 24万）'},
+  yochien:   {cost:100, label:'私立幼稚園・認定こども園（3年 100万）'},
+  ninka_gai: {cost:120, label:'認可外保育園（3年 120万）'},
+  mix:       {cost:70,  label:'私立幼稚園1年＋保育園2年（70万）'},
+};
+const C={
+  ep:50,ei:165,tt:360,tm:270,tl:180,kp:90,
+  jp:[38,50,62],jm:[65,92,110],ts2:54,ts3:57,yb:120,
+  s4:90,s5:110,s6:140,i5:55,i6:65,n4:63,n5:77,n6:98,mk:22,
+  un:54,ul:120,us:170,utl:130,uts:180,
+  um:3200,ud:2500,uph:1200,
+  fkl:520,fks:620,fwl:490,fws:570,
+  gn:64,gp:88,ejp:2.5,eup:3.5,ek:2.5,
+  act:{swim:.58,piano:.67,ballet:.83,soroban:.42,english:.83,sports:.58,art:.42,gymnastics:.94,kumon:.748}
+};
+const CY=new Date().getFullYear();
+let kids=[{id:0,nm:'第1子',by:CY-3,nu:'priv_hoiku',el:'pub',cx:false,ss:'5',mk:false,jh:'pub',tr:false,tf:true,trAuto:false,ts:false,rn:false,md:false,uv:'national',gd:'none',eu:5,ej:3,cj:'mid',cu:'mid',ac:[],ay:{},ov:0}];
+let ac=0,c1=null,c2=null;
+const fm=v=>Math.round(v).toLocaleString('ja-JP');
+const fM=v=>(Math.round(v*10)/10).toLocaleString('ja-JP');
+function isAuto(c){return c.jh==='toshi'&&c.md;}
+
+document.addEventListener('change',e=>{
+  if(e.target.tagName==='SELECT'){
+    const face=document.getElementById('face_'+e.target.id);
+    if(face){face.textContent=e.target.options[e.target.selectedIndex]?.text||'';}
+  }
+});
+
+function save(){
+  const id=ac;const c=kids[id];const g=k=>document.getElementById(k+'_'+id);
+  if(g('nm'))c.nm=g('nm').value;
+  if(g('by'))c.by=parseInt(g('by').value)||c.by;
+  [['nu','nu'],['el','el'],['ss','ss'],['jh','jh'],['uv','uv'],['gd','gd'],['cj','cj'],['cu','cu']].forEach(([k,p])=>{const e=g(k);if(e&&e.value)c[p]=e.value;});
+  ['cx','mk','ts','rn','md'].forEach(k=>{const e=g(k);if(e)c[k]=e.checked;});
+  const te=g('tr');if(te)c.tr=te.checked;
+  const tf=g('tf');if(tf)c.tf=tf.checked;
+  c.trAuto=isAuto(c);if(c.trAuto)c.tr=true;
+  c.eu=parseInt(g('eu')?.value)||c.eu;c.ej=parseInt(g('ej')?.value)||c.ej;c.ov=parseFloat(g('ov')?.value)||0;
+  c.ac=AL.filter(a=>document.getElementById('a_'+a+'_'+id)?.checked);
+  c.ay={};AL.forEach(a=>{const e=document.getElementById('ay_'+a+'_'+id);if(e)c.ay[a]=parseInt(e.value)||0;});
+  const ksc=document.getElementById('kumon_subj_'+id);if(ksc)c.kumonSubj=parseInt(ksc.value)||1;
+}
+function renderTabs(){
+  document.getElementById('tabBar').innerHTML=
+    kids.map((c,i)=>`<button class="tab${i===ac?' active':''}" onclick="sw(${i})">${c.nm}${kids.length>1?`<button class="tab-del" onclick="dc(event,${i})">×</button>`:''}</button>`).join('')+
+    (kids.length<4?`<button class="tab-add" onclick="ac2()">＋ 追加</button>`:'');
+}
+function sw(i){save();ac=i;renderTabs();renderForms();}
+function ac2(){if(kids.length>=4)return;save();const idx=kids.length;kids.push({id:idx,nm:`第${idx+1}子`,by:CY-3,nu:'priv_hoiku',el:'pub',cx:false,ss:'5',mk:false,jh:'pub',tr:false,tf:true,trAuto:false,ts:false,rn:false,md:false,uv:'national',gd:'none',eu:5,ej:3,cj:'mid',cu:'mid',ac:[],ay:{},ov:0});ac=idx;renderTabs();renderForms();}
+function dc(e,i){e.stopPropagation();if(kids.length<=1)return;save();kids.splice(i,1);kids.forEach((c,idx)=>c.id=idx);if(ac>=kids.length)ac=kids.length-1;renderTabs();renderForms();}
+function onMdChange(id){const c=kids[id];const e=document.getElementById('md_'+id);if(e)c.md=e.checked;c.trAuto=isAuto(c);if(c.trAuto)c.tr=true;renderForms();}
+function onJhChange(id){const c=kids[id];const e=document.getElementById('jh_'+id);if(e)c.jh=e.value;c.trAuto=isAuto(c);if(c.trAuto)c.tr=true;renderForms();}
+function sl(id,opts,cur,oc=''){
+  const sel=`<select id="${id}"${oc?` onchange="${oc}"`:''}>${opts.map(([v,l])=>`<option value="${v}"${cur===v?' selected':''}>${l}</option>`).join('')}</select>`;
+  const curLabel=(opts.find(([v])=>v===cur)||opts[0])[1];
+  return`<div class="sel-wrap">${sel}<div class="sel-face" id="face_${id}">${curLabel}</div></div>`;
+}
+function R(l,c,n=''){return`<div class="fr"><label>${l}</label>${c}</div>${n?`<div class="snote">${n}</div>`:''}`;}
+
+function renderForms(){
+  const c=kids[ac];const id=ac;const t=JT[c.jh||'pub'];
+  const isToshi=c.jh==='toshi';const isFz=t?t.fz:false;const auto=isAuto(c);
+  let trBlk='';
+  if(isToshi){
+    trBlk=auto
+      ?`<div class="auto-note"><span><strong>鉄緑会（自動追加）</strong>：都内進学校型×医学部受験コースのため、鉄緑会（英数＋理科・中高6年 計270万）を自動計上。解除は医学部受験コースのチェックを外してください。</span></div>`
+      :`<div class="fr"><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="tr_${id}"${c.tr?' checked':''}> 鉄緑会（中高6年）</label></div>
+       <div class="fsub" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:7px">
+         <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--tx2)"><input type="radio" id="tf_${id}" name="trm_${id}" ${c.tf!==false?' checked':''}> 全科目（計360万）</label>
+         <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--tx2)"><input type="radio" id="tfl_${id}" name="trm_${id}" ${c.tf===false?' checked':''}> 英数のみ（計180万）</label>
+       </div>`;
+  } else if(t&&t.ko){
+    trBlk=`<div class="fr"><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="tr_${id}"${c.tr?' checked':''}> 大学受験塾（高2〜3・120万）</label></div>`;
+  } else {
+    trBlk=`<input type="hidden" id="tr_${id}" value="">`;
+  }
+  const nuOpts=Object.entries(NURSERY).map(([v,o])=>[v,o.label]);
+  const actHtml=AL.map(a=>{
+  if(a==='kumon'){
+    const ks=c.kumonSubj||1;
+    return `<div class="act-row">
+  <div class="act-top"><input type="checkbox" id="a_kumon_${id}"${(c.ac&&c.ac.includes('kumon'))?' checked':''}><span class="act-lbl">公文式</span></div>
+  <div class="act-bot" style="gap:4px;flex-wrap:wrap">
+    <input type="number" class="act-yr" id="kumon_subj_${id}" value="${ks}" min="1" max="3" style="width:32px" title="教科数">
+    <span class="act-unit" style="font-size:10px">教科</span>
+    <input type="number" class="act-yr" id="ay_kumon_${id}" value="${(c.ay&&c.ay['kumon'])||0}" min="0" max="18" placeholder="0">
+    <span class="act-unit">年</span>
+  </div>
+</div>`;
+  }
+  return `<div class="act-row">
+  <div class="act-top"><input type="checkbox" id="a_${a}_${id}"${(c.ac&&c.ac.includes(a))?' checked':''}><span class="act-lbl">${ALB[a]}</span></div>
+  <div class="act-bot"><input type="number" class="act-yr" id="ay_${a}_${id}" value="${(c.ay&&c.ay[a])||0}" min="0" max="18" placeholder="0"><span class="act-unit">年</span></div>
+</div>`;
+  }).join('');
+
+  document.getElementById('childForms').innerHTML=`
+<div class="fg">
+<div>
+  ${R('名前',`<input type="text" id="nm_${id}" value="${c.nm}" style="width:78px">`)}
+  ${R('生まれ年',`<input type="number" id="by_${id}" value="${c.by}" min="1980" max="2030" style="width:82px"> 年`)}
+  ${R('保育所・幼稚園',sl(`nu_${id}`,nuOpts,c.nu||'priv_hoiku'),'3歳以上は保育料無償化のため実費（給食費・教材費等）のみ')}
+  ${R('小学校',sl(`el_${id}`,[['pub','公立（50万）'],['priv','私立（165万）']],c.el))}
+  <div class="fr"><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="cx_${id}"${c.cx?' checked':''}> 中学受験あり</label></div>
+  <div class="fsub">
+    ${R('中受塾',sl(`ss_${id}`,[['4','SAPIX 4年〜（340万）'],['5','SAPIX 5年〜（250万）'],['6','SAPIX 6年のみ（140万）'],['ichishin','市進 5〜6年（120万）'],['nissin','日能研 4〜6年（238万）']],c.ss))}
+    <div class="fr"><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="mk_${id}"${c.mk?' checked':''}> 個別指導塾 6カ月（22万）</label></div>
+  </div>
+  ${R('中学・高校タイプ',sl(`jh_${id}`,[
+    ['pub','公立中→公立高'],['koritsu_ikkann','公立中高一貫（小石川・桜修館等）'],
+    ['chiho','郊外型私立一貫（開智・市川等）645万'],
+    ['toshi','都内進学校型（海城・麻布・開成等）710万'],
+    ['fuzoku','私立中高大付属（慶應・早稲田・青学等）810万']
+  ],c.jh,`onJhChange(${id})`),(t&&t.n)||'')}
+  ${R('中高 通学距離',sl(`cj_${id}`,[['near','近距離（〜20分・年3万）'],['mid','中距離（30〜45分・年6万）'],['far','遠距離（1時間・年10万）'],['vfar','超遠距離（1.5時間〜・年13万）']],c.cj))}
+</div>
+<div>
+  ${trBlk}
+  <div class="fr"><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="ts_${id}"${c.ts?' checked':''}> 映像予備校・東進等（高2〜3・111万）</label></div>
+  <div class="fr"><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="md_${id}"${c.md?' checked':''} onchange="onMdChange(${id})"> 医学部受験コース（高1〜3・267万）</label></div>
+  <div class="fr"><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="rn_${id}"${c.rn?' checked':''}> 一浪（河合塾等・120万）</label></div>
+  ${isFz
+    ? R('大学（付属内部進学）',sl(`uv_${id}`,[['fkl','慶應系・文系（520万）'],['fks','慶應系・理系（620万）'],['fwl','早稲田系・文系（490万）'],['fws','早稲田系・理系（570万）'],['ul','他私立文系（460万）']],c.uv),'大学受験費用なし・内部推薦')
+    : R('大学',sl(`uv_${id}`,[
+        ['national','国立大学（年54万）'],
+        ['ul','私立文系（年120万）'],
+        ['us','私立理系（年170万）'],
+        ['utl','難関私立文系 早慶等（年130万）'],
+        ['uts','難関私立理系 早慶等（年180万）'],
+        ['um','私立医学部（6年 3,200万）'],
+        ['ud','私立歯学部（6年 2,500万）'],
+        ['uph','私立薬学部（6年 1,200万）'],
+      ],c.uv))
+  }
+  ${R('大学 通学距離',sl(`cu_${id}`,[['near','近距離（〜20分・年8万）'],['mid','中距離（30〜45分・年15万）'],['far','遠距離（1時間・年22万）'],['vfar','超遠距離（1.5時間〜・年30万）']],c.cu))}
+  ${R('大学院',sl(`gd_${id}`,[['none','なし'],['national','国立修士（2年）'],['priv','私立修士（2年）']],c.gd))}
+  ${R('大学受験校数',`<input type="number" id="eu_${id}" value="${c.eu||5}" min="1" max="25" style="width:50px"> 校`)}
+  ${(c.cx||(t&&t.ko))?R('中学受験校数',`<input type="number" id="ej_${id}" value="${c.ej||3}" min="1" max="8" style="width:50px"> 校`):`<input type="hidden" id="ej_${id}" value="0">`}
+  ${R('海外研修・課外費',`<input type="number" id="ov_${id}" value="${c.ov||0}" min="0" max="500" style="width:58px"> 万円`)}
+</div>
+</div>
+<div class="dv"></div>
+<div class="slbl">習い事（チェックして年数を入力）</div>
+<div class="act-grid">${actHtml}</div>`;
+}
+
+function getU(uv){
+  const m={
+    national:{c:C.un*4,y:4},ul:{c:C.ul*4,y:4},us:{c:C.us*4,y:4},
+    utl:{c:C.utl*4,y:4},uts:{c:C.uts*4,y:4},
+    um:{c:C.um,y:6},ud:{c:C.ud,y:6},uph:{c:C.uph,y:6},
+    fkl:{c:C.fkl,y:4},fks:{c:C.fks,y:4},fwl:{c:C.fwl,y:4},fws:{c:C.fws,y:4}
+  };
+  return m[uv]||m.national;
+}
+function calcKid(c){
+  const by=c.by;const t=JT[c.jh||'pub'];const st=[];
+  const isFz=t.fz;const auto=isAuto(c);
+  const nc=(NURSERY[c.nu]||NURSERY.priv_hoiku).cost;
+  st.push({nm:'保育園・幼稚園（3年間）',yr:[by,by+6],c:nc,co:'#4CAF82'});
+  const eb=c.el==='pub'?C.ep:C.ei;let jk=0;
+  if(c.cx){const s=c.ss;if(s==='4')jk=C.s4+C.s5+C.s6;else if(s==='5')jk=C.s5+C.s6;else if(s==='6')jk=C.s6;else if(s==='ichishin')jk=C.i5+C.i6;else if(s==='nissin')jk=C.n4+C.n5+C.n6;if(c.mk)jk+=C.mk;}
+  if(t.ko)jk+=C.kp;
+  const ej=(c.cx||t.ko)?(c.ej||3)*C.ejp:0;
+  st.push({nm:'小学校'+(c.cx||t.ko?'（塾含）':''),yr:[by+6,by+12],c:eb+jk+ej,co:'#5B9BD5'});
+  st.push({nm:'中学校（学費）',yr:[by+12,by+15],c:t.j3,co:'#F4A740'});
+  if(t.ex>0)st.push({nm:'中高 行事・修旅積立（別途）',yr:[by+12,by+18],c:t.ex*6,co:'#E0A430'});
+  let hj=0;
+  if(t.hj)hj+=C.jp.reduce((a,b)=>a+b,0);
+  if(c.tr&&t.te){const f=document.getElementById('tf_'+c.id);hj+=auto?C.tm:(f?f.checked:c.tf!==false)?C.tt:C.tl;}
+  if(c.tr&&t.ko)hj+=120;
+  if(c.md)hj+=C.jm.reduce((a,b)=>a+b,0);
+  if(c.ts)hj+=C.ts2+C.ts3;
+  const rn=c.rn?C.yb:0;const eu=isFz?0:(c.eu||5)*C.eup+C.ek;const he=by+18+(c.rn?1:0);
+  st.push({nm:'高校（学費・塾・受験）'+(c.rn?'＋浪人':''),yr:[by+15,he],c:t.h3+hj+eu+rn+(c.ov||0),co:'#E8644A'});
+  if(c.jh!=='pub'){const ct=CMT[c.cj||'mid'].j;st.push({nm:'中高 通学定期（6年）',yr:[by+12,by+18],c:ct*6,co:'#45B89A'});}
+  const{c:uc,y:uy}=getU(c.uv);
+  st.push({nm:'大学（学費）',yr:[he,he+uy],c:uc,co:'#8B7ED8'});
+  const uct=CMT[c.cu||'mid'].u;
+  st.push({nm:'大学 通学定期',yr:[he,he+uy],c:uct*uy,co:'#6AA8DC'});
+  if(c.gd&&c.gd!=='none'){const gs=he+uy;const gc=c.gd==='national'?C.gn*2:C.gp*2;st.push({nm:'大学院（学費＋交通費）',yr:[gs,gs+2],c:gc+uct*2,co:'#C4527A'});}
+  if(c.ac&&c.ac.length>0){const act=c.ac.reduce((s,a)=>{const y=(c.ay&&c.ay[a])||0;const subj=(a==='kumon')?(c.kumonSubj||1):1;return s+C.act[a]*12*y*subj;},0);if(act>0)st.push({nm:`習い事（${c.ac.map(a=>ALB[a]).join('・')}）`,yr:[by+3,by+15],c:act,co:'#7DBE50'});}
+  return{by,st,total:st.reduce((s,x)=>s+x.c,0),nm:c.nm};
+}
+function calculate(){
+  save();const res=kids.map(c=>calcKid(c));const gd=res.reduce((s,r)=>s+r.total,0);
+  document.getElementById('results').style.display='block';
+  document.getElementById('metricGrid').innerHTML=res.map(r=>`<div class="mc"><div class="ml">${r.nm}</div><div class="mv">${fM(r.total)}<span style="font-size:11px;font-weight:400">万円</span></div></div>`).join('')+`<div class="mc tot"><div class="ml">${res.length}人合計</div><div class="mv">${fM(gd)}<span style="font-size:11px;font-weight:400">万円</span></div></div>`;
+  const all=[...new Set(res.flatMap(r=>r.st.map(s=>s.nm)))];
+  document.getElementById('barCharts').innerHTML=all.map(sn=>{const tot=res.reduce((s,r)=>{const x=r.st.find(x=>x.nm===sn);return s+(x?x.c:0);},0);if(!tot)return'';const pct=Math.round(tot/gd*100);const col=res.flatMap(r=>r.st).find(s=>s.nm===sn).co;return`<div class="bw"><div class="bh"><span>${sn}</span><span style="font-family:'DM Mono',monospace">${fM(tot)}万 (${pct}%)</span></div><div class="bb"><div class="bf" style="width:${pct}%;background:${col}"></div></div></div>`;}).join('');
+  document.getElementById('noteText').innerHTML=
+    `<strong>【大学学費の根拠（2025年度実績）】</strong>`+
+    `私立文系年120万：日大法学部4年486万÷4≒121万の実績値。`+
+    `私立理系年170万：中央大理工682万・東京理科大工663万の実績平均値。`+
+    `難関私立文系年130万：慶應経済545万÷4≒136万の実績値。`+
+    `難関私立理系年180万：早稲田基幹理工722万・慶應理工724万の実績値。`+
+    `<strong>【自動連動】</strong>都内進学校型＋医学部受験コース選択時、鉄緑会（英数＋理科・中高6年計270万）を自動計上。`+
+    `<strong>【保育園・幼稚園（3〜5歳・3年間）】</strong>3歳以上は幼児教育無償化により保育料無償。実費のみ負担。` +
+    `私立幼稚園・認定こども園100万：無償化後の実費（保育料差額・給食費・施設費・バス代・教材費・入園料等）3年間合計。無償化前は約150万程度。` +
+    `認可外保育園120万：無償化補助（月最大3.7万）差し引き後の実質負担。`;
+  const minY=Math.min(...res.map(r=>r.by));const maxY=Math.max(...res.flatMap(r=>r.st.map(s=>s.yr[1])));
+  const yrs=Array.from({length:maxY-minY+1},(_,i)=>minY+i);const lbs=yrs.map(y=>y+'年');
+  const pal=['#C84B2F','#2D5FA8','#3D7A5C','#8B5CF6'];
+  const iD=res.map(r=>yrs.map(y=>{let cv=0;r.st.forEach(s=>{if(y>=s.yr[0]&&y<s.yr[1])cv+=s.c/(s.yr[1]-s.yr[0]);});return Math.round(cv*10)/10;}));
+  const tD=yrs.map((_,yi)=>Math.round(iD.reduce((s,d)=>s+d[yi],0)*10)/10);
+  document.getElementById('leg1').innerHTML=res.map((r,ri)=>`<span><span class="ld" style="background:${pal[ri]}"></span>${r.nm}</span>`).join('');
+  if(c1)c1.destroy();
+  c1=new Chart(document.getElementById('ch1'),{type:'line',data:{labels:lbs,datasets:res.map((r,ri)=>({label:r.nm,data:iD[ri],backgroundColor:pal[ri]+'20',borderColor:pal[ri],borderWidth:2,tension:.3,fill:true,pointRadius:2,pointHoverRadius:4}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:ctx=>`${ctx.dataset.label}: ${fm(ctx.parsed.y)}万円`}}},scales:{x:{ticks:{maxRotation:45,autoSkip:true,maxTicksLimit:14,font:{size:10}}},y:{beginAtZero:true,ticks:{callback:v=>`${v}万`,font:{size:10}}}}}});
+  document.getElementById('leg2').innerHTML=res.map((r,ri)=>`<span><span class="ld" style="background:${pal[ri]}"></span>${r.nm}分</span>`).join('')+`<span><span class="ll" style="background:#1A1714"></span>合計</span>`;
+  const sDs=res.map((r,ri)=>({label:r.nm,data:iD[ri],backgroundColor:pal[ri]+'55',borderColor:pal[ri],borderWidth:1,tension:.3,fill:true,stack:'s',pointRadius:0}));
+  sDs.push({label:'合計',data:tD,backgroundColor:'transparent',borderColor:'#1A1714',borderWidth:2.5,borderDash:[6,3],tension:.3,fill:false,stack:undefined,pointRadius:2,pointHoverRadius:5,pointBackgroundColor:'#1A1714',order:0});
+  if(c2)c2.destroy();
+  c2=new Chart(document.getElementById('ch2'),{type:'line',data:{labels:lbs,datasets:sDs},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:ctx=>ctx.dataset.label==='合計'?`合計: ${fm(ctx.parsed.y)}万円`:`${ctx.dataset.label}: ${fm(ctx.parsed.y)}万円`}}},scales:{x:{ticks:{maxRotation:45,autoSkip:true,maxTicksLimit:14,font:{size:10}}},y:{beginAtZero:true,stacked:true,ticks:{callback:v=>`${v}万`,font:{size:10}}}}}});
+  const sc={'保育':'#4CAF82','小学':'#5B9BD5','中学校':'#F4A740','高校':'#E8644A','中高 行':'#E0A430','中高 通':'#45B89A','大学院':'#C4527A','大学（':'#8B7ED8','大学 通':'#6AA8DC','習い事':'#7DBE50'};
+  let rows=`<tr><th style="width:38%">項目</th>${res.map(r=>`<th style="text-align:right">${r.nm}</th>`).join('')}<th style="text-align:right">合計</th></tr>`;
+  all.forEach(sn=>{const vals=res.map(r=>{const x=r.st.find(x=>x.nm===sn);return x?x.c:0;});const tot=vals.reduce((a,b)=>a+b,0);if(!tot)return;const ce=Object.entries(sc).find(([k])=>sn.startsWith(k));const bg=ce?ce[1]+'33':'#eee';rows+=`<tr><td><span class="bg" style="background:${bg};color:#1A1714">${sn}</span></td>${vals.map(v=>`<td style="text-align:right;font-family:'DM Mono',monospace">${v>0?fM(v):'-'}</td>`).join('')}<td style="text-align:right;font-family:'DM Mono',monospace;font-weight:700">${fM(tot)}</td></tr>`;});
+  rows+=`<tr class="tr"><td>合計（万円）</td>${res.map(r=>`<td style="text-align:right;font-family:'DM Mono',monospace">${fM(r.total)}</td>`).join('')}<td style="text-align:right;font-family:'DM Mono',monospace">${fM(gd)}</td></tr>`;
+  document.getElementById('dtbl').innerHTML=rows;
+  document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+}
+renderTabs();renderForms();
+</script>
+</body>
+</html>
