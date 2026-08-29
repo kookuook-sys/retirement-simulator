@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>サラリーマン夫婦 ライフプランシミュレーター</title>
+<style>
+:root{
+  --bg:#12181f; --panel:#1a2230; --panel2:#212b3b; --line:#2c3a4f;
+  --ink:#eef2f6; --sub:#8fa1b8; --gold:#d4af5a; --teal:#4fb8a6; --red:#e07a6b;
+  --font-d:"Zen Old Mincho","Hiragino Mincho ProN",serif;
+  --font-b:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",sans-serif;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-b);padding:24px 14px 60px;}
+.wrap{max-width:960px;margin:0 auto;}
+header{margin-bottom:22px;}
+.eyebrow{color:var(--gold);font-size:12px;letter-spacing:.18em;text-transform:uppercase;margin-bottom:8px;}
+h1{font-family:var(--font-d);font-weight:600;font-size:24px;margin:0 0 8px;}
+.lede{color:var(--sub);font-size:13.5px;line-height:1.8;max-width:680px;}
+
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:20px 0 16px;border-bottom:1px solid var(--line);padding-bottom:10px;}
+.tab{padding:8px 14px;border-radius:20px;font-size:12.5px;background:var(--panel2);color:var(--sub);cursor:pointer;border:1px solid var(--line);white-space:nowrap;}
+.tab.active{background:var(--gold);color:#14181f;border-color:var(--gold);font-weight:600;}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:16px;display:none;}
+.panel.show{display:block;}
+.panel h2{font-size:14px;color:var(--ink);margin:0 0 4px;font-family:var(--font-d);}
+.panel .desc{font-size:12px;color:var(--sub);margin:0 0 18px;line-height:1.7;}
+
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:640px){.row{grid-template-columns:1fr;}}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12px;color:var(--sub);margin-bottom:6px;}
+.field input[type=number], .field select{
+  width:100%;background:var(--panel2);color:var(--ink);border:1px solid var(--line);
+  padding:8px 10px;border-radius:6px;font-size:13px;
+}
+.field .unit{font-size:11px;color:var(--sub);margin-left:6px;}
+fieldset{border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:16px;}
+legend{font-size:12px;color:var(--gold);padding:0 6px;}
+
+.chip-group{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px;}
+.chip{padding:8px 14px;border-radius:20px;background:var(--panel2);border:1px solid var(--line);font-size:12.5px;cursor:pointer;color:var(--sub);}
+.chip.sel{background:var(--teal);color:#0e1a18;border-color:var(--teal);font-weight:600;}
+
+button.primary{
+  background:var(--gold);color:#14181f;border:none;padding:12px 22px;border-radius:8px;
+  font-size:14px;font-weight:700;cursor:pointer;margin-top:6px;
+}
+button.ghost{
+  background:transparent;color:var(--sub);border:1px solid var(--line);padding:10px 18px;
+  border-radius:8px;font-size:13px;cursor:pointer;
+}
+.btnrow{display:flex;gap:10px;justify-content:flex-end;margin-top:10px;}
+
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;}
+.kpi{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:14px 16px;}
+.kpi .lbl{font-size:11px;color:var(--sub);margin-bottom:6px;}
+.kpi .num{font-family:var(--font-d);font-size:22px;}
+.kpi .num.pos{color:var(--teal);} .kpi .num.neg{color:var(--red);}
+.kpi .sub{font-size:11px;color:var(--sub);margin-top:4px;}
+
+canvas{width:100%;height:260px;display:block;}
+.legend{display:flex;gap:16px;font-size:11px;color:var(--sub);margin:10px 0 20px;}
+.legend span{display:inline-flex;align-items:center;gap:6px;}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap;}
+th{color:var(--sub);font-weight:500;position:sticky;top:0;background:var(--panel);}
+td:first-child,th:first-child{text-align:left;}
+tr.deficit td{background:rgba(224,122,107,.12);}
+.tablewrap{max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:8px;}
+.warn{font-size:12px;color:var(--red);margin-top:8px;}
+footer{margin-top:26px;font-size:11px;color:var(--sub);line-height:1.9;border-top:1px solid var(--line);padding-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">Life Plan Simulator</div>
+  <h1>サラリーマン夫婦 ライフプランシミュレーター</h1>
+  <p class="lede">収入・生活費・住宅ローン・教育費を入力すると、60歳や65歳で完全リタイアした場合に資産がどう推移するかを試算します。「かんたん診断」で数値の目安を自動入力してから、細かく調整することもできます。</p>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-tab="t0">0. かんたん診断</div>
+  <div class="tab" data-tab="t1">1. 収入・資産</div>
+  <div class="tab" data-tab="t2">2. 生活費・スポット費用</div>
+  <div class="tab" data-tab="t3">3. 住宅ローン</div>
+  <div class="tab" data-tab="t4">4. 教育費</div>
+  <div class="tab" data-tab="t5">5. 結果</div>
+</div>
+
+<!-- STEP 0 -->
+<div class="panel show" id="t0">
+  <h2>かんたん診断</h2>
+  <p class="desc">当てはまるものを選ぶと、各項目にモデル的な数値が自動で入ります。あとから1〜4のタブで細かく修正できます。</p>
+
+  <fieldset><legend>住まい</legend>
+    <div class="chip-group" data-group="housing_status">
+      <div class="chip sel" data-val="loan">持ち家(ローン返済中)</div>
+      <div class="chip" data-val="paid">持ち家(完済済み)</div>
+      <div class="chip" data-val="rent">賃貸</div>
+      <div class="chip" data-val="undecided">未定</div>
+    </div>
+  </fieldset>
+
+  <fieldset><legend>夫婦の年齢</legend>
+    <div class="row">
+      <div class="field"><label>夫の現在の年齢</label><input type="number" id="q_hage" value="30"></div>
+      <div class="field"><label>妻の現在の年齢</label><input type="number" id="q_wage" value="29"></div>
+    </div>
+  </fieldset>
+
+  <fieldset><legend>共働きスタイル</legend>
+    <div class="chip-group" data-group="work_style">
+      <div class="chip sel" data-val="fulltime">夫婦フルタイム共働き</div>
+      <div class="chip" data-val="fuyou">妻は扶養内(年収103万円)</div>
+      <div class="chip" data-val="parttime150">妻はパート(年収150万円)</div>
+      <div class="chip" data-val="housewife">妻は専業主婦</div>
+    </div>
+  </fieldset>
+
+  <fieldset><legend>子供の人数と進路想定</legend>
+    <div class="row">
+      <div class="field"><label>子供の人数</label>
+        <select id="q_nkids"><option>0</option><option>1</option><option selected>2</option><option>3</option></select>
+      </div>
+      <div class="field"><label>進路想定</label>
+        <select id="q_path">
+          <option value="1000">公立中心(大学は私立)</option>
+          <option value="1500">私立中高一貫・私立大学</option>
+          <option value="1800" selected>私立中高一貫・国公立大/国立大学院</option>
+          <option value="2400">私立多め・大学院まで</option>
+        </select>
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset><legend>退職金・年金</legend>
+    <div class="chip-group" data-group="pension_style">
+      <div class="chip sel" data-val="default">目安の数値を使う</div>
+      <div class="chip" data-val="custom">あとで自分で入力する</div>
+    </div>
+  </fieldset>
+
+  <div class="btnrow"><button class="primary" onclick="applyKantan()">この内容で自動入力する</button></div>
+</div>
+
+<!-- STEP 1 -->
+<div class="panel" id="t1">
+  <h2>収入・資産</h2>
+  <p class="desc">夫婦それぞれの年収推移、企業型DC、退職金、年金の見込みを入力します。金額はすべて万円単位です。</p>
+  <div class="row">
+    <fieldset><legend>夫</legend>
+      <div class="field"><label>現在の年齢</label><input type="number" id="h_age" value="30"></div>
+      <div class="field"><label>現在の年収</label><input type="number" id="h_income" value="500"></div>
+      <div class="row">
+        <div class="field"><label>5年後</label><input type="number" id="h_m5" value="600"></div>
+        <div class="field"><label>10年後</label><input type="number" id="h_m10" value="700"></div>
+        <div class="field"><label>15年後</label><input type="number" id="h_m15" value="800"></div>
+        <div class="field"><label>20年後</label><input type="number" id="h_m20" value="900"></div>
+        <div class="field"><label>25年後</label><input type="number" id="h_m25" value="800"></div>
+        <div class="field"><label>30年後(60歳)</label><input type="number" id="h_m30" value="700"></div>
+      </div>
+      <div class="field"><label>60〜65歳の年収</label><input type="number" id="h_band60" value="300"></div>
+      <div class="field"><label>65〜70歳の年収(再雇用等、年金は別欄)</label><input type="number" id="h_band65" value="0"></div>
+      <div class="field"><label>企業型DC(月額)</label><input type="number" id="h_dc" value="5"></div>
+      <div class="field"><label>60歳退職金</label><input type="number" id="h_bonus" value="700"></div>
+      <div class="field"><label>65歳〜の年金(年額)</label><input type="number" id="h_pension" value="240"></div>
+      <div class="field"><label>現在の金融資産</label><input type="number" id="h_assets" value="0"></div>
+    </fieldset>
+    <fieldset><legend>妻</legend>
+      <div class="field"><label>現在の年齢</label><input type="number" id="w_age" value="29"></div>
+      <div class="field"><label>現在の年収</label><input type="number" id="w_income" value="400"></div>
+      <div class="row">
+        <div class="field"><label>5年後</label><input type="number" id="w_m5" value="450"></div>
+        <div class="field"><label>10年後</label><input type="number" id="w_m10" value="550"></div>
+        <div class="field"><label>15年後</label><input type="number" id="w_m15" value="650"></div>
+        <div class="field"><label>20年後</label><input type="number" id="w_m20" value="700"></div>
+        <div class="field"><label>25年後</label><input type="number" id="w_m25" value="600"></div>
+        <div class="field"><label>30年後(60歳)</label><input type="number" id="w_m30" value="600"></div>
+      </div>
+      <div class="field"><label>60〜65歳の年収</label><input type="number" id="w_band60" value="300"></div>
+      <div class="field"><label>65〜70歳の年収(再雇用等、年金は別欄)</label><input type="number" id="w_band65" value="0"></div>
+      <div class="field"><label>企業型DC(月額)</label><input type="number" id="w_dc" value="5"></div>
+      <div class="field"><label>60歳退職金</label><input type="number" id="w_bonus" value="600"></div>
+      <div class="field"><label>65歳〜の年金(年額)</label><input type="number" id="w_pension" value="220"></div>
+      <div class="field"><label>現在の金融資産</label><input type="number" id="w_assets" value="0"></div>
+    </fieldset>
+  </div>
+  <fieldset><legend>運用</legend>
+    <div class="row">
+      <div class="field"><label>運用利回り(年率%)</label><input type="number" id="invest_rate" value="0" step="0.5"></div>
+      <div class="field"><label>運用を始める夫の年齢</label><input type="number" id="invest_start" value="30"></div>
+    </div>
+    <p class="desc" style="margin:6px 0 0">iDeCo・積立NISAで投資に回した分と、下の「その他の積立」に入れた分に、ここで指定した利回りを適用します。現金のまま置いておく分(普通預金扱い)は利回り0%で計算します。</p>
+  </fieldset>
+  <fieldset><legend>iDeCo(個人型確定拠出年金)</legend>
+    <div class="row">
+      <div class="field"><label>夫の月額拠出</label><input type="number" id="h_ideco" value="0"><span class="unit">万円/月</span></div>
+      <div class="field"><label>妻の月額拠出</label><input type="number" id="w_ideco" value="0"><span class="unit">万円/月</span></div>
+    </div>
+    <p class="desc" style="margin:6px 0 0">企業型DCと同じく60歳になるまで引き出せない前提で計算します。月額上限の目安:会社に企業型DCがある場合は月1.2万円、会社に企業年金がない場合は月2.3万円、自営業は月6.8万円です(制度・加入状況により異なります)。</p>
+  </fieldset>
+  <fieldset><legend>積立NISA・新NISA(つみたて投資枠)</legend>
+    <div class="row">
+      <div class="field"><label>夫の月額積立</label><input type="number" id="h_nisa" value="0"><span class="unit">万円/月</span></div>
+      <div class="field"><label>妻の月額積立</label><input type="number" id="w_nisa" value="0"><span class="unit">万円/月</span></div>
+    </div>
+    <p class="desc" style="margin:6px 0 0">iDeCoと違い、いつでも引き出せる前提で流動性資産に含めて計算します。つみたて投資枠の上限は月10万円(年120万円)、成長投資枠と合わせた生涯非課税枠は1,800万円が目安です。</p>
+  </fieldset>
+</div>
+
+<!-- STEP 2 -->
+<div class="panel" id="t2">
+  <h2>生活費・スポット費用</h2>
+  <div class="chip-group" data-group="living_preset">
+    <div class="chip" data-val="tight">堅実</div>
+    <div class="chip sel" data-val="std">標準</div>
+    <div class="chip" data-val="rich">ゆとり</div>
+  </div>
+  <div class="row">
+    <div class="field"><label>基本生活費(夫婦・年額)</label><input type="number" id="living_base" value="300"></div>
+    <div class="field"><label>子供1人あたり追加生活費(年額・0〜21歳同居中)</label><input type="number" id="living_child" value="60"></div>
+    <div class="field"><label>65歳以降の生活費(年額)</label><input type="number" id="living_65" value="264"></div>
+  </div>
+  <fieldset><legend>スポット費用</legend>
+    <div class="row">
+      <div class="field"><label>車買い替え費用</label><input type="number" id="sp_car" value="300"></div>
+      <div class="field"><label>買い替え周期(年)</label><input type="number" id="sp_car_cyc" value="8"></div>
+      <div class="field"><label>車検代</label><input type="number" id="sp_shaken" value="15"></div>
+      <div class="field"><label>車検周期(年)</label><input type="number" id="sp_shaken_cyc" value="2"></div>
+      <div class="field"><label>大型家電買い替え費用</label><input type="number" id="sp_appl" value="30"></div>
+      <div class="field"><label>買い替え周期(年)</label><input type="number" id="sp_appl_cyc" value="7"></div>
+      <div class="field"><label>家族旅行費(年額)</label><input type="number" id="sp_travel" value="50"></div>
+    </div>
+  </fieldset>
+  <fieldset><legend>住宅維持費</legend>
+    <div class="chip-group" data-group="house_type">
+      <div class="chip sel" data-val="ikkodate">一戸建て</div>
+      <div class="chip" data-val="mansion">マンション</div>
+    </div>
+    <div class="row">
+      <div class="field"><label>一戸建てメンテ費(10年毎)</label><input type="number" id="sp_maint" value="200"></div>
+      <div class="field"><label>マンション管理費・修繕積立金(月額)</label><input type="number" id="sp_mgmt" value="3.5"></div>
+      <div class="field"><label>固定資産税(年額)</label><input type="number" id="sp_tax" value="16"></div>
+    </div>
+  </fieldset>
+</div>
+
+<!-- STEP 3 -->
+<div class="panel" id="t3">
+  <h2>住宅ローン</h2>
+  <div class="row">
+    <div class="field"><label>購入時の夫の年齢</label><input type="number" id="loan_age" value="30"></div>
+    <div class="field"><label>購入価格</label><input type="number" id="loan_price" value="10000"></div>
+    <div class="field"><label>頭金</label><input type="number" id="loan_down" value="0"></div>
+    <div class="field"><label>借入期間(年)</label><input type="number" id="loan_years" value="35"></div>
+    <div class="field"><label>金利(固定・年率%)</label><input type="number" id="loan_rate" value="3.8" step="0.1"></div>
+  </div>
+  <p class="desc">借入額 = 購入価格 − 頭金 で自動計算します。頭金は購入年に金融資産から一括で差し引かれます。</p>
+  <div id="loan_warn" class="warn"></div>
+</div>
+
+<!-- STEP 4 -->
+<div class="panel" id="t4">
+  <h2>教育費</h2>
+  <p class="desc">子供ごとに、現在の年齢(まだ生まれていない場合はマイナス値。例:2年後に誕生予定なら -2)と概算総額を入力します。</p>
+  <div id="kids_container"></div>
+  <div class="btnrow"><button class="ghost" onclick="addKid()">子供を追加</button></div>
+</div>
+
+<!-- STEP 5 -->
+<div class="panel" id="t5">
+  <h2>結果</h2>
+  <div class="btnrow" style="justify-content:flex-start;margin-bottom:16px;">
+    <button class="primary" onclick="calcAndRender()">試算する</button>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="lbl">60歳時点の資産(完全リタイア)</div><div class="num" id="r_k60">—</div><div class="sub" id="r_k60sub"></div></div>
+    <div class="kpi"><div class="lbl">65歳時点の資産(完全リタイア)</div><div class="num" id="r_k65">—</div><div class="sub" id="r_k65sub"></div></div>
+  </div>
+
+  <canvas id="chart" width="900" height="260"></canvas>
+  <div class="legend">
+    <span><i class="dot" style="background:#d4af5a"></i>流動性資産(現金・NISA等)</span>
+    <span><i class="dot" style="background:#4fb8a6"></i>企業型DC(60歳まで別枠)</span>
+  </div>
+
+  <div class="tablewrap">
+    <table id="resulttable"></table>
+  </div>
+</div>
+
+<footer>
+  すべての数値は入力に基づく試算であり、将来の金利・運用成果・年金額・物価水準を保証するものではありません。実際のライフプランを検討する際は、最新の制度や金融機関の情報を必ずご確認のうえ、ファイナンシャルプランナー等の専門家にもご相談ください。
+</footer>
+</div>
+
+<script>
+// ---------- tabs ----------
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('show'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.tab).classList.add('show');
+  });
+});
+document.querySelectorAll('.chip-group').forEach(g=>{
+  g.querySelectorAll('.chip').forEach(c=>{
+    c.addEventListener('click',()=>{
+      g.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));
+      c.classList.add('sel');
+    });
+  });
+});
+function chipVal(group){ const el=document.querySelector(`.chip-group[data-group="${group}"] .chip.sel`); return el? el.dataset.val: null; }
+
+// ---------- kids UI ----------
+let kidCount=0;
+function addKid(age0, total){
+  kidCount++;
+  const id = 'kid'+kidCount;
+  const div = document.createElement('div');
+  div.className='row'; div.id=id;
+  div.innerHTML = `
+    <div class="field"><label>子供${kidCount} 現在の年齢</label><input type="number" class="kid_age" value="${age0!==undefined?age0:0}"></div>
+    <div class="field"><label>教育費総額(概算)</label><input type="number" class="kid_total" value="${total!==undefined?total:1000}"></div>`;
+  document.getElementById('kids_container').appendChild(div);
+}
+addKid(0,1000); addKid(2,1000);
+
+function clearKids(){ document.getElementById('kids_container').innerHTML=''; kidCount=0; }
+
+// ---------- kantan shindan ----------
+function applyKantan(){
+  const housing = chipVal('housing_status');
+  const work = chipVal('work_style');
+  const nkids = parseInt(document.getElementById('q_nkids').value);
+  const eduTotal = parseInt(document.getElementById('q_path').value);
+  const hage = parseInt(document.getElementById('q_hage').value);
+  const wage = parseInt(document.getElementById('q_wage').value);
+
+  document.getElementById('h_age').value = hage;
+  document.getElementById('w_age').value = wage;
+
+  // work style presets
+  if(work==='fulltime'){
+    setVals({h_income:500,h_m5:600,h_m10:700,h_m15:800,h_m20:900,h_m25:800,h_m30:700,h_band60:300,h_dc:5,h_bonus:700,h_pension:240,
+              w_income:400,w_m5:450,w_m10:550,w_m15:650,w_m20:700,w_m25:600,w_m30:600,w_band60:300,w_dc:5,w_bonus:600,w_pension:220});
+  } else if(work==='fuyou'){
+    setVals({h_income:500,h_m5:600,h_m10:700,h_m15:800,h_m20:900,h_m25:800,h_m30:700,h_band60:300,h_dc:5,h_bonus:700,h_pension:240,
+              w_income:103,w_m5:103,w_m10:103,w_m15:103,w_m20:103,w_m25:103,w_m30:103,w_band60:103,w_dc:0,w_bonus:0,w_pension:80});
+  } else if(work==='parttime150'){
+    setVals({h_income:500,h_m5:600,h_m10:700,h_m15:800,h_m20:900,h_m25:800,h_m30:700,h_band60:300,h_dc:5,h_bonus:700,h_pension:240,
+              w_income:150,w_m5:150,w_m10:150,w_m15:150,w_m20:150,w_m25:150,w_m30:150,w_band60:150,w_dc:1,w_bonus:100,w_pension:110});
+  } else { // housewife
+    setVals({h_income:500,h_m5:600,h_m10:700,h_m15:800,h_m20:900,h_m25:800,h_m30:700,h_band60:300,h_dc:5,h_bonus:700,h_pension:240,
+              w_income:0,w_m5:0,w_m10:0,w_m15:0,w_m20:0,w_m25:0,w_m30:0,w_band60:0,w_dc:0,w_bonus:0,w_pension:0});
+  }
+
+  // housing
+  let price, purchaseAge;
+  if(housing==='paid'){ price=0; purchaseAge=hage-1; document.getElementById('loan_down').value=0; }
+  else if(housing==='rent'){ price=0; purchaseAge=hage+100; }
+  else {
+    if(work==='fulltime'){ price=10000; purchaseAge=hage; }
+    else { price=5500; purchaseAge=hage+5; }
+  }
+  document.getElementById('loan_price').value=price;
+  document.getElementById('loan_age').value=purchaseAge;
+  document.getElementById('loan_down').value=0;
+
+  // children
+  clearKids();
+  for(let i=0;i<nkids;i++){
+    addKid(-2*(i+1)+2, eduTotal); // stagger birth years a bit
+  }
+  if(nkids===0){ /* leave empty */ }
+
+  alert('自動入力しました。タブ1〜4で内容を確認・調整してから「5. 結果」で試算してください。');
+  document.querySelector('.tab[data-tab="t1"]').click();
+}
+function setVals(o){ for(const k in o){ const el=document.getElementById(k); if(el) el.value=o[k]; } }
+
+// ---------- core calc engine ----------
+function loanPayment(p,r,years){ const n=years*12, rr=r/12; if(rr===0) return p/n; return p*rr/(1-Math.pow(1+rr,-n)); }
+function amortize(p,r,years){
+  const rr=r/12, m=loanPayment(p,r,years); let bal=p; const ann=[],end=[];
+  for(let y=0;y<years;y++){ for(let mo=0;mo<12;mo++){ const i=bal*rr; bal-= (m-i);} ann.push(m*12); end.push(Math.max(bal,0)); }
+  return {ann,end};
+}
+function incomeF(curAge,curInc,ms,bands){
+  const yrs=[5,10,15,20,25,30];
+  return function(age){
+    if(age>=60){ for(const b of bands){ if(b.s<=age&&age<b.e) return b.v; } return 0; }
+    let v=curInc; for(const y of yrs){ if(age>=curAge+y) v=ms[y]; } return v;
+  };
+}
+function eduCurve(total){
+  const w={}; for(let a=0;a<22;a++){ w[a]= a<6?0.3: a<12?0.5: a<15?1.5: a<18?1.3:2.2; }
+  const s=Object.values(w).reduce((x,y)=>x+y,0); const o={}; for(const k in w) o[k]=total*w[k]/s; return o;
+}
+
+function readInputs(){
+  const g=id=>parseFloat(document.getElementById(id).value)||0;
+  const h = {age:g('h_age'), income:g('h_income'), ms:{5:g('h_m5'),10:g('h_m10'),15:g('h_m15'),20:g('h_m20'),25:g('h_m25'),30:g('h_m30')},
+             bands:[{s:60,e:65,v:g('h_band60')},{s:65,e:200,v:g('h_band65')}], dc:g('h_dc'), bonus:g('h_bonus'), pension:g('h_pension'), assets:g('h_assets')};
+  const w = {age:g('w_age'), income:g('w_income'), ms:{5:g('w_m5'),10:g('w_m10'),15:g('w_m15'),20:g('w_m20'),25:g('w_m25'),30:g('w_m30')},
+             bands:[{s:60,e:65,v:g('w_band60')},{s:65,e:200,v:g('w_band65')}], dc:g('w_dc'), bonus:g('w_bonus'), pension:g('w_pension'), assets:g('w_assets')};
+  const invest = {rate:g('invest_rate')/100, start:g('invest_start')};
+  h.ideco = g('h_ideco'); w.ideco = g('w_ideco');
+  h.nisa = g('h_nisa'); w.nisa = g('w_nisa');
+  const living = {base:g('living_base'), child:g('living_child'), post65:g('living_65')};
+  const houseType = chipVal('house_type');
+  const spot = {car:g('sp_car'),carCyc:g('sp_car_cyc'), shaken:g('sp_shaken'),shakenCyc:g('sp_shaken_cyc'),
+                appl:g('sp_appl'),applCyc:g('sp_appl_cyc'), travel:g('sp_travel'),
+                maint:g('sp_maint'), mgmt:g('sp_mgmt'), tax:g('sp_tax'), houseType};
+  const loan = {age:g('loan_age'), price:g('loan_price'), down:g('loan_down'), years:g('loan_years')||35, rate:g('loan_rate')/100};
+  const kids = Array.from(document.querySelectorAll('#kids_container .row')).map(r=>({
+    age0: parseFloat(r.querySelector('.kid_age').value)||0,
+    total: parseFloat(r.querySelector('.kid_total').value)||0
+  }));
+  return {h,w,invest,living,spot,loan,kids};
+}
+
+function simulate(inp, fullRetire, endAge=90){
+  const {h,w,invest,living,spot,loan,kids} = inp;
+  const hIncF = incomeF(h.age,h.income,h.ms,h.bands);
+  const wIncF = incomeF(w.age,w.income,w.ms,w.bands);
+  const loanPrincipal = Math.max(loan.price - loan.down, 0);
+  const {ann,end} = amortize(loanPrincipal, loan.rate, loan.years);
+  const eduSched = kids.map(k=>({age0:k.age0, curve:eduCurve(k.total)}));
+
+  let cash = h.assets + w.assets - Math.min(loan.down, h.assets+w.assets);
+  let downShortfall = Math.max(loan.down - (h.assets+w.assets), 0);
+  let nisa = 0;   // いつでも引き出せるが、指定利回りで運用される積立NISA枠
+  let dcH=0, dcW=0; // 60歳まで引き出せない枠(企業型DC+iDeCo合算)
+  const rows=[];
+  for(let y=0; y<=endAge-h.age; y++){
+    const hAge=h.age+y, wAge=w.age+y;
+    const investing = hAge>=invest.start;
+    if(nisa>0 && investing) nisa += nisa*invest.rate;
+    if(dcH>0 && investing) dcH += dcH*invest.rate;
+    if(dcW>0 && investing) dcW += dcW*invest.rate;
+
+    const hInc = (fullRetire && hAge>=60) ? 0 : hIncF(hAge);
+    const wInc = (fullRetire && wAge>=60) ? 0 : wIncF(wAge);
+    let income = hInc+wInc;
+
+    if(hAge<60) dcH += (h.dc+h.ideco)*12;
+    if(wAge<60) dcW += (w.dc+w.ideco)*12;
+    const nisaContrib = (h.nisa+w.nisa)*12;
+    nisa += nisaContrib;
+
+    let extra=0;
+    if(hAge===60){ extra+=h.bonus; cash+=dcH; dcH=0; }
+    if(wAge===60){ extra+=w.bonus; cash+=dcW; dcW=0; }
+    if(hAge>=65) extra+=h.pension;
+    if(wAge>=65) extra+=w.pension;
+
+    const nKidsHome = eduSched.filter(k=> (k.age0+y)>=0 && (k.age0+y)<=21).length;
+    const livingCost = (hAge>=65? living.post65: living.base) + living.child*nKidsHome;
+
+    let spotCost=0;
+    if(spot.carCyc && y%spot.carCyc===0 && y>0) spotCost+=spot.car;
+    if(spot.shakenCyc && y%spot.shakenCyc===0 && y>0) spotCost+=spot.shaken;
+    if(spot.applCyc && y%spot.applCyc===0 && y>0) spotCost+=spot.appl;
+    spotCost += spot.travel;
+    const loanIdx = hAge-loan.age;
+    if(loanIdx>=0 && loan.price>0){
+      spotCost += spot.tax;
+      if(spot.houseType==='mansion'){ spotCost += spot.mgmt*12; }
+      else if(spot.maint && loanIdx%10===0 && loanIdx>0){ spotCost += spot.maint; }
+    }
+
+    let edu=0;
+    for(const k of eduSched){ const ca=k.age0+y; if(k.curve[ca]!==undefined) edu+=k.curve[ca]; }
+
+    let loanPay=0, bal=0;
+    if(loanIdx>=0 && loanIdx<loan.years){ loanPay=ann[loanIdx]; bal=end[loanIdx]; }
+
+    const totalDelta = income+extra-livingCost-spotCost-edu-loanPay; // NISA拠出は資産内での付け替えなので純資産の増減には影響しない
+    cash += totalDelta - nisaContrib;
+    rows.push({hAge, liquid: cash+nisa, dc: dcH+dcW, net: totalDelta, loanBal: bal});
+  }
+  return {rows, downShortfall};
+}
+
+function fmt(n){ return Math.round(n).toLocaleString('ja-JP')+'万円'; }
+
+function calcAndRender(){
+  const inp = readInputs();
+  const full = simulate(inp, true);
+  document.getElementById('loan_warn').textContent = full.downShortfall>0 ? `頭金が金融資産に対して ${fmt(full.downShortfall)} 不足しています。` : '';
+
+  const rows = full.rows;
+  const at60 = rows.find(r=>r.hAge===60);
+  const at65 = rows.find(r=>r.hAge===65);
+  const k60=document.getElementById('r_k60'), k65=document.getElementById('r_k65');
+  if(at60){ k60.textContent=fmt(at60.liquid); k60.className='num '+(at60.liquid>=0?'pos':'neg'); }
+  if(at65){ k65.textContent=fmt(at65.liquid); k65.className='num '+(at65.liquid>=0?'pos':'neg'); }
+  document.getElementById('r_k60sub').textContent = '再雇用等の収入を見込まない場合';
+  document.getElementById('r_k65sub').textContent = '再雇用等の収入を見込まない場合';
+
+  drawChart(rows);
+  renderTable(rows);
+}
+
+function drawChart(rows){
+  const c=document.getElementById('chart'), ctx=c.getContext('2d');
+  const W=c.width,H=c.height,pad={l:56,r:16,t:16,b:26};
+  ctx.clearRect(0,0,W,H);
+  const xs=rows.map(r=>r.hAge), liq=rows.map(r=>r.liquid), dc=rows.map(r=>r.dc);
+  const all=liq.concat(dc); const minV=Math.min(0,...all), maxV=Math.max(...all,1);
+  const x0=xs[0],x1=xs[xs.length-1];
+  const px=a=>pad.l+(a-x0)/(x1-x0)*(W-pad.l-pad.r);
+  const py=v=>pad.t+(1-(v-minV)/(maxV-minV))*(H-pad.t-pad.b);
+  ctx.strokeStyle='#2c3a4f'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(pad.l,py(0)); ctx.lineTo(W-pad.r,py(0)); ctx.stroke();
+  ctx.fillStyle='#8fa1b8'; ctx.font='10px sans-serif';
+  ctx.fillText('0',pad.l-20,py(0)+3);
+  ctx.fillText(Math.round(maxV).toLocaleString()+'万',pad.l-46,py(maxV)+8);
+  [30,40,50,60,70,80,90].forEach(a=>{ if(a>=x0&&a<=x1) ctx.fillText(a+'歳',px(a)-8,H-8); });
+  function line(vals,color){ ctx.strokeStyle=color; ctx.lineWidth=2.2; ctx.beginPath();
+    vals.forEach((v,i)=>{ const x=px(xs[i]),y=py(v); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); }); ctx.stroke(); }
+  line(dc,'#4fb8a6'); line(liq,'#d4af5a');
+}
+
+function renderTable(rows){
+  const t=document.getElementById('resulttable');
+  let html='<tr><th>夫年齢</th><th>流動性資産</th><th>DC残高</th><th>年間収支</th></tr>';
+  rows.forEach(r=>{
+    html+=`<tr class="${r.net<0?'deficit':''}"><td>${r.hAge}歳</td><td>${fmt(r.liquid)}</td><td>${fmt(r.dc)}</td><td>${fmt(r.net)}</td></tr>`;
+  });
+  t.innerHTML=html;
+}
+
+calcAndRender();
+</script>
+</body>
+</html>
