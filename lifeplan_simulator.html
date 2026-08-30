@@ -39,6 +39,8 @@ h1{font-family:var(--font-d);font-weight:600;font-size:24px;margin:0 0 8px;}
 .field .unit{font-size:11px;color:var(--sub);margin-left:6px;}
 fieldset{border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:16px;}
 legend{font-size:12px;color:var(--gold);padding:0 6px;}
+.field.disabled{opacity:.35;}
+.field.disabled input{pointer-events:none;background:var(--panel);}
 
 .chip-group{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px;}
 .chip{padding:8px 14px;border-radius:20px;background:var(--panel2);border:1px solid var(--line);font-size:12.5px;cursor:pointer;color:var(--sub);}
@@ -244,10 +246,11 @@ footer{margin-top:26px;font-size:11px;color:var(--sub);line-height:1.9;border-to
       <div class="chip" data-val="mansion">マンション</div>
     </div>
     <div class="row">
-      <div class="field"><label>一戸建てメンテ費(10年毎)</label><input type="number" id="sp_maint" value="200"></div>
-      <div class="field"><label>マンション管理費・修繕積立金(月額)</label><input type="number" id="sp_mgmt" value="3.5"></div>
+      <div class="field" id="field_maint"><label>一戸建てメンテ費(10年毎)</label><input type="number" id="sp_maint" value="200"></div>
+      <div class="field" id="field_mgmt"><label>マンション管理費・修繕積立金(月額)</label><input type="number" id="sp_mgmt" value="3.5"></div>
       <div class="field"><label>固定資産税(年額)</label><input type="number" id="sp_tax" value="16"></div>
     </div>
+    <p class="desc" id="house_type_note" style="margin:6px 0 0"></p>
   </fieldset>
 </div>
 
@@ -316,10 +319,28 @@ document.querySelectorAll('.chip-group').forEach(g=>{
     c.addEventListener('click',()=>{
       g.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));
       c.classList.add('sel');
+      if(g.dataset.group==='house_type') updateHouseTypeUI();
     });
   });
 });
 function chipVal(group){ const el=document.querySelector(`.chip-group[data-group="${group}"] .chip.sel`); return el? el.dataset.val: null; }
+
+function updateHouseTypeUI(){
+  const t = chipVal('house_type');
+  const maintField = document.getElementById('field_maint');
+  const mgmtField = document.getElementById('field_mgmt');
+  const note = document.getElementById('house_type_note');
+  if(t==='mansion'){
+    maintField.classList.add('disabled');
+    mgmtField.classList.remove('disabled');
+    note.textContent = '「マンション」を選んでいるため、計算には管理費・修繕積立金(月額)のみを使用します。一戸建てメンテ費の欄は入力されていても計算に使われません。';
+  } else {
+    maintField.classList.remove('disabled');
+    mgmtField.classList.add('disabled');
+    note.textContent = '「一戸建て」を選んでいるため、計算には一戸建てメンテ費(10年毎)のみを使用します。マンション管理費の欄は入力されていても計算に使われません。';
+  }
+}
+updateHouseTypeUI();
 
 // ---------- kids UI ----------
 let kidCount=0;
