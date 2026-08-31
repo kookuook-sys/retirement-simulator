@@ -198,7 +198,7 @@ footer{margin-top:26px;font-size:11px;color:var(--sub);line-height:1.9;border-to
       <div class="field"><label>運用利回り(年率%)</label><input type="number" id="invest_rate" value="0" step="0.5"></div>
       <div class="field"><label>運用を始める夫の年齢</label><input type="number" id="invest_start" value="30"></div>
     </div>
-    <p class="desc" style="margin:6px 0 0">iDeCo・積立NISAで投資に回した分と、下の「その他の積立」に入れた分に、ここで指定した利回りを適用します。現金のまま置いておく分(普通預金扱い)は利回り0%で計算します。</p>
+    <p class="desc" style="margin:6px 0 0">その年に余った現金と、iDeCo・積立NISAの残高すべてに、ここで指定した利回りを適用します(残高がマイナスの間は利回りを適用しません)。</p>
   </fieldset>
   <fieldset><legend>iDeCo(個人型確定拠出年金)</legend>
     <div class="row">
@@ -466,6 +466,7 @@ function simulate(inp, fullRetire, endAge=90){
   for(let y=0; y<=endAge-h.age; y++){
     const hAge=h.age+y, wAge=w.age+y;
     const investing = hAge>=invest.start;
+    if(cash>0 && investing) cash += cash*invest.rate;
     if(nisa>0 && investing) nisa += nisa*invest.rate;
     if(dcH>0 && investing) dcH += dcH*invest.rate;
     if(dcW>0 && investing) dcW += dcW*invest.rate;
