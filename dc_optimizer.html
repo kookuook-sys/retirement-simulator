@@ -433,7 +433,11 @@ function simulate(dcAge,penYrs,pubStart,pub,useNinchi,P){
     retTax=0;
   } else {
     // 分離受取
-    const dcYrs=36+(dcAge-60);
+    // DC側の勤続年数への上乗せは、国民年金任意加入+iDeCo継続期間分のみ認められる
+    // （専属FP・DC委託会社確認：任意加入期間中にiDeCoで運用継続していた期間に限り加算可）
+    const nmonths=gi('i-nmonths')||0;
+    const addYrs=useNinchi?Math.min(dcAge-60,nmonths/12):0;
+    const dcYrs=36+addYrs;
     const dcCtrlFull=retCtrl(dcYrs);
     const mCtrl=retCtrl(mimashi(P.ret));
     dcCtrl=Math.max(0,dcCtrlFull-mCtrl);
