@@ -341,7 +341,7 @@ function calcSoc(age,dcAge,penInc,dcAnn,useNinchi,P){
 
   if(age<=61){
     h=H1;
-  } else if(age<dcAge){
+  } else if(age<(P.tokuStart||65)){
     h=nagareyamaKokuho(dcAnn||0,age,spSalNow,spAge);
   } else if(age<=74){
     if(P.h3type==='fixed'){
@@ -403,12 +403,16 @@ function annualTax(age,dcAnn,dcAge,pubInc,P,useNinchi){
 }
 
 // シナリオシミュレーション
-function simulate(dcAge,penYrs,pubStart,pub,useNinchi,P){
+function simulate(dcAge,penYrs,pubStart,pub,useNinchi,P0){
+  // 特退(退職者健保)加入は老齢厚生年金の受給権発生時（＝公的年金の受給開始年齢）。DC受取年齢とは無関係
+  const P=Object.assign({},P0,{tokuStart:pubStart});
   const sameYear=dcAge===60;
   const ctrl36=retCtrl(36);
   // iDeCo拠出額をDC残高に加算（月額×12ヶ月×年数）
   const iDecoMonthly=gi('i-ideco')||5000;
-  const iDecoContrib=useNinchi?iDecoMonthly*12*(dcAge-60)/10000:0;
+  const nmAll=gi('i-nmonths')||0;
+  const iDecoYrs=useNinchi?Math.min(dcAge-60,nmAll/12):0; // 掛金拠出は任意加入期間まで
+  const iDecoContrib=iDecoMonthly*12*iDecoYrs/10000;
   const dcTotal=useNinchi?P.dc+iDecoContrib:P.dc;
 
   let dcCtrl,retTax,lump,lumpTax;
@@ -504,6 +508,8 @@ function startCalc(){
   const pyMax=parseInt(gs('i-pymax'));
   const topN=parseInt(gs('i-topn'));
 
+  const ninchiMonthsIn=Math.min(60,gi('i-nmonths')||0);
+  const ninchiMinAge=Math.min(65,60+Math.ceil(ninchiMonthsIn/12));
   const scenarios=[];
   for(let dcAge=60;dcAge<=65;dcAge++){
     for(let penYrs=pyMin;penYrs<=pyMax;penYrs++){
@@ -514,8 +520,8 @@ function startCalc(){
         // 任意加入なし
         const pub=P.pub*(1-pubReduce);
         scenarios.push({dcAge,penYrs,pubStart,pub,useNinchi:false});
-        // 任意加入あり（65歳受取のみ）
-        if(ninchi&&dcAge===65){
+        // 任意加入あり：DC受取は任意加入期間終了後（60歳＋任意加入月数）〜65歳
+        if(ninchi&&ninchiMonthsIn>0&&dcAge>=ninchiMinAge){
           const pub2=P.pub2*(1-pubReduce);
           scenarios.push({dcAge,penYrs,pubStart,pub:pub2,useNinchi:true});
         }
