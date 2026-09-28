@@ -353,7 +353,7 @@ function calcSoc(age,dcAge,penInc,dcAnn,useNinchi,P){
     // 75歳以降：後期高齢者×2人
     h=koukiPrem1(penInc)*2;
   }
-  if(useNinchi&&age<dcAge){
+  if(useNinchi){
     // 任意加入は合計nenMonthsヶ月（デフォルト54ヶ月）
     // 60〜63歳：12ヶ月/年、64歳：残り月数
     const ninchiMonths=gi('i-nmonths')||0;
@@ -465,7 +465,7 @@ function simulate(dcAge,penYrs,pubStart,pub,useNinchi,P0){
 
   const ann=(dcTotal-lump)/penYrs;
   // iDeCo：コストではなくDC残高に上乗せ（月5,000円×60ヶ月=3万円）
-  const iDeCoC=0; // iDeCoはDC残高に加算済みのためコスト計上しない
+  const iDeCoC=iDecoContrib; // iDeCo掛金は自己資金からの支出。DC残高に加算される分と相殺して手残りを計算（60〜63歳は本人課税所得がほぼ無く所得控除の効果は小さいため考慮しない）
   let totalTax=retTax+lumpTax,totalSoc=iDeCoC;
   const yd=[];
   for(let age=60;age<=P.endAge;age++){
@@ -520,8 +520,8 @@ function startCalc(){
         // 任意加入なし
         const pub=P.pub*(1-pubReduce);
         scenarios.push({dcAge,penYrs,pubStart,pub,useNinchi:false});
-        // 任意加入あり：DC受取は任意加入期間終了後（60歳＋任意加入月数）〜65歳
-        if(ninchi&&ninchiMonthsIn>0&&dcAge>=ninchiMinAge){
+        // 任意加入あり：DC受取は60〜65歳のすべて（60歳受取=任意加入のみ／61歳以降=iDeCo継続＋控除上乗せは任意加入月数まで）
+        if(ninchi&&ninchiMonthsIn>0){
           const pub2=P.pub2*(1-pubReduce);
           scenarios.push({dcAge,penYrs,pubStart,pub:pub2,useNinchi:true});
         }
@@ -566,7 +566,7 @@ function renderResults(top,total,P){
     const medal=i<3?medals[i]:`${i+1}位`;
     const pubLabel=r.pubStart<65?`${r.pubStart}歳繰り上げ（${((65-r.pubStart)*4.8).toFixed(1)}%減）`:`65歳通常受給`;
     const ninchiMonths=gi('i-nmonths')||0;
-    const ninchiLabel=r.useNinchi?`任意加入${ninchiMonths}ヶ月+iDeCo`:'任意加入なし';
+    const ninchiLabel=r.useNinchi?(r.dcAge===60?`任意加入${ninchiMonths}ヶ月のみ`:`任意加入${ninchiMonths}ヶ月+iDeCo`):'任意加入なし';
     const dcCtrlLabel=r.sameYear?`${fmt(r.dcCtrl)}万（合算）`:`${fmt(r.dcCtrl)}万（分離）`;
     const title=`DC${r.dcAge}歳受取・${r.penYrs}年年金 ／ 公的年金${pubLabel} ／ ${ninchiLabel}`;
 
