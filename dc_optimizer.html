@@ -409,7 +409,7 @@ function simulate(dcAge,penYrs,pubStart,pub,useNinchi,P0){
   const sameYear=dcAge===60;
   const ctrl36=retCtrl(36);
   // iDeCo拠出額をDC残高に加算（月額×12ヶ月×年数）
-  const iDecoMonthly=gi('i-ideco')||5000;
+  const iDecoMonthly=gi('i-ideco'); // 0円入力を5,000円に置き換えない
   const nmAll=gi('i-nmonths')||0;
   const iDecoYrs=useNinchi?Math.min(dcAge-60,nmAll/12):0; // 掛金拠出は任意加入期間まで
   const iDecoContrib=iDecoMonthly*12*iDecoYrs/10000;
