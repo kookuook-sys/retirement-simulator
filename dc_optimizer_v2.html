@@ -181,6 +181,7 @@ p{margin-bottom:1em;color:var(--ink2)}
       <div class="irow"><label>老齢基礎年金 満額<br><small style="opacity:.6">令和8年度：847,296円（年度ごとに更新）</small></label><input type="number" id="i-kiso" value="847296"><span class="unit">円/年</span></div>
       <div class="irow"><label>任意加入後の年金を手入力する<br><small style="opacity:.6">ねんきん定期便の試算値を使う場合にチェック</small></label><input type="checkbox" id="i-pub2-manual" style="width:auto"><span class="unit"></span></div>
       <div class="irow"><label>失業給付（非課税）</label><input type="number" id="i-unemp" value="100"><span class="unit">万円</span></div>
+      <div class="irow"><label>DC・一時金の運用利回り<br><small style="opacity:.6">運用益は最終年に一時所得として精算／一時金は再投資（0なら運用なし）</small></label><input type="number" id="i-dcr" value="0" step="0.5"><span class="unit">%/年</span></div>
       <div class="irow"><label>想定死亡年齢</label><input type="number" id="i-end" value="90"><span class="unit">歳</span></div>
     </div>
     <div class="ibox">
@@ -414,7 +415,7 @@ function calcSoc(age,dcAge,penInc,dcAnn,useNinchi,P){
 }
 
 // 年間税額計算
-function annualTax(age,dcAnn,dcAge,pubInc,P,useNinchi){
+function annualTax(age,dcAnn,dcAge,pubInc,P,useNinchi,oneTime){
   let penInc=0;
   if(age>=65){
     const tot=dcAnn+pubInc;
@@ -422,6 +423,8 @@ function annualTax(age,dcAnn,dcAge,pubInc,P,useNinchi){
   } else if(dcAnn>0){
     penInc=Math.max(0,dcAnn-pCtrl64(dcAnn));
   }
+  const oneInc=oneTime>0?Math.max(0,(oneTime-50)/2):0; // 一時所得：特別控除50万円、2分の1を総合課税
+  penInc+=oneInc;
   const soc=calcSoc(age,dcAge,penInc,dcAnn,useNinchi,P);
   const wInc=(P.work>0&&age<P.wend)?salInc(P.wsal):0; // 給与所得（給与所得控除後）
   penInc+=wInc;
@@ -439,6 +442,30 @@ function annualTax(age,dcAnn,dcAge,pubInc,P,useNinchi){
   return {tax,penInc,soc,tIT};
 }
 
+// DC・一時金の運用益（利回り i-dcr）
+// 年金は毎月均等(残高÷年数)、運用で増えた分は最終年の支払いに上乗せ（三井住友信託への確認内容）
+const GAIN_TAX=0.20315;
+function dcRate(){const v=parseFloat(document.getElementById('i-dcr').value);return isFinite(v)?v/100:0;}
+function annPmt(R,n){return R/n;}
+function finalExtra(R,n){ // n年均等取崩し(年初払い)後に残る運用益
+  const r=dcRate();if(r<=0)return 0;
+  const pmt=R/n;let bal=R;
+  for(let k=0;k<n;k++){bal=(bal-pmt)*(1+r);}
+  return Math.max(0,bal);
+}
+// 年金収入(年齢ageの分)。運用益の精算は一時所得として別扱い
+function dcPay(age,dcAge,n,ann,fin){return age>=dcAge&&age<dcAge+n?ann:0;}
+function dcOne(age,dcAge,n,fin){return age===dcAge+n-1?fin:0;} // 最終年に精算される運用益（一時所得）
+// 一時金の運用益(税引後)と年金受取額の再投資益。想定死亡年齢まで
+function dcGain(R,l,n,dcAge,endAge){
+  const r=dcRate();if(r<=0)return {inDC:0,extra:0};
+  const pmt=R/n,fin=finalExtra(R,n);
+  const reinv=a=>Math.max(0,Math.pow(1+r,Math.max(0,endAge-a))-1)*(1-GAIN_TAX);
+  let extra=l*reinv(dcAge);
+  for(let k=0;k<n;k++)extra+=pmt*reinv(dcAge+k);
+  extra+=fin*reinv(dcAge+n-1);
+  return {inDC:fin,extra};
+}
 // シナリオシミュレーション
 function simulate(dcAge,penYrs,pubStart,pub,useNinchi,P0){
   // 特退(退職者健保)加入は老齢厚生年金の受給権発生時（＝公的年金の受給開始年齢）。DC受取年齢とは無関係
@@ -461,14 +488,15 @@ function simulate(dcAge,penYrs,pubStart,pub,useNinchi,P0){
       const merged=P.ret+l;
       const taxable=Math.max(0,(merged-ctrl36)/2);
       const lt=itax(taxable)*1.021+taxable*0.1;
-      const ann=(P.dc-l)/penYrs;
+      const ann=annPmt(P.dc-l,penYrs),fin=finalExtra(P.dc-l,penYrs);
       let tot=lt;
       for(let age=60;age<=P.endAge;age++){
-        const dca=age>=60&&age<60+penYrs?ann:0;
+        const dca=dcPay(age,60,penYrs,ann,fin);
         const pi=pub>0&&age>=pubStart?pub:0;
-        const r=annualTax(age,dca,60,pi,P,false);
+        const r=annualTax(age,dca,60,pi,P,false,dcOne(age,60,penYrs,fin));
         tot+=r.tax+r.soc.t;
       }
+      {const g=dcGain(P.dc-l,l,penYrs,60,P.endAge);tot-=g.extra;}
       if(tot<bestTotal){bestTotal=tot;lump=l;lumpTax=itax(Math.max(0,(P.ret+l-ctrl36)/2))*1.021+Math.max(0,(P.ret+l-ctrl36)/2)*0.1;}
     }
     retTax=0;
@@ -488,27 +516,29 @@ function simulate(dcAge,penYrs,pubStart,pub,useNinchi,P0){
     for(let l=0;l<=dcTotal;l+=100){
       const taxable=Math.max(0,(l-dcCtrl)/2);
       const lt=itax(taxable)*1.021+taxable*0.1;
-      const ann=(P.dc-l)/penYrs;
+      const ann=annPmt(P.dc-l,penYrs),fin=finalExtra(P.dc-l,penYrs);
       let tot=retTax+lt;
       for(let age=60;age<=P.endAge;age++){
-        const dca=age>=dcAge&&age<dcAge+penYrs?ann:0;
+        const dca=dcPay(age,dcAge,penYrs,ann,fin);
         const pi=pub>0&&age>=pubStart?pub:0;
-        const r=annualTax(age,dca,dcAge,pi,P,useNinchi);
+        const r=annualTax(age,dca,dcAge,pi,P,useNinchi,dcOne(age,dcAge,penYrs,fin));
         tot+=r.tax+r.soc.t;
       }
+      {const g=dcGain(P.dc-l,l,penYrs,dcAge,P.endAge);tot-=g.extra;}
       if(tot<bestTotal){bestTotal=tot;lump=l;lumpTax=itax(Math.max(0,(l-dcCtrl)/2))*1.021+Math.max(0,(l-dcCtrl)/2)*0.1;}
     }
   }
 
-  const ann=(dcTotal-lump)/penYrs;
+  const ann=annPmt(dcTotal-lump,penYrs),fin=finalExtra(dcTotal-lump,penYrs);
+  const gn=dcGain(dcTotal-lump,lump,penYrs,dcAge,P.endAge);
   // iDeCo：コストではなくDC残高に上乗せ（月5,000円×60ヶ月=3万円）
   const iDeCoC=iDecoContrib; // iDeCo掛金は自己資金からの支出。DC残高に加算される分と相殺して手残りを計算（60〜63歳は本人課税所得がほぼ無く所得控除の効果は小さいため考慮しない）
   let totalTax=retTax+lumpTax,totalSoc=iDeCoC;
   const yd=[];
   for(let age=60;age<=P.endAge;age++){
-    const dca=age>=dcAge&&age<dcAge+penYrs?ann:0;
+    const dca=dcPay(age,dcAge,penYrs,ann,fin);
     const pi=age>=pubStart?pub:0;
-    const r=annualTax(age,dca,dcAge,pi,P,useNinchi);
+    const r=annualTax(age,dca,dcAge,pi,P,useNinchi,dcOne(age,dcAge,penYrs,fin));
     totalTax+=r.tax;totalSoc+=r.soc.t;
     yd.push({age,dca,pi,penInc:r.penInc,tax:r.tax,soc:r.soc,tIT:r.tIT});
   }
@@ -516,7 +546,7 @@ function simulate(dcAge,penYrs,pubStart,pub,useNinchi,P0){
   const spSalTotal=P.spSal*5;
   const spPenTotal=P.spPen*(P.endAge-64);
   const workTotal=P.work>0?P.wsal*Math.max(0,Math.min(P.wend,P.endAge+1)-60):0;
-  const totalIncome=P.ret+dcTotal+pubTotal+spSalTotal+spPenTotal+P.unemp+workTotal+(P.koyou||0);
+  const totalIncome=P.ret+dcTotal+gn.inDC+gn.extra+pubTotal+spSalTotal+spPenTotal+P.unemp+workTotal+(P.koyou||0);
   const net=totalIncome-(totalTax+totalSoc);
   return {
     dcAge,penYrs,pubStart,pub,useNinchi,sameYear,lump,ann,
