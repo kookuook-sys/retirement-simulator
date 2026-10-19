@@ -501,7 +501,7 @@ function simulate(dcAge,penYrs,pubStart,pub,useNinchi,P0){
         const r=annualTax(age,dca,60,pi,P,false,dcOne(age,60,penYrs,fin));
         tot+=r.tax+r.soc.t;
       }
-      {const g=dcGain(P.dc-l,l,penYrs,60,P.endAge);tot-=g.extra;}
+      {const g=dcGain(P.dc-l,l,penYrs,60,P.endAge);tot-=g.extra+g.inDC;}
       if(tot<bestTotal){bestTotal=tot;lump=l;lumpTax=itax(Math.max(0,(P.ret+l-ctrl36)/2))*1.021+Math.max(0,(P.ret+l-ctrl36)/2)*0.1;}
     }
     retTax=0;
@@ -529,7 +529,7 @@ function simulate(dcAge,penYrs,pubStart,pub,useNinchi,P0){
         const r=annualTax(age,dca,dcAge,pi,P,useNinchi,dcOne(age,dcAge,penYrs,fin));
         tot+=r.tax+r.soc.t;
       }
-      {const g=dcGain(P.dc-l,l,penYrs,dcAge,P.endAge);tot-=g.extra;}
+      {const g=dcGain(P.dc-l,l,penYrs,dcAge,P.endAge);tot-=g.extra+g.inDC;}
       if(tot<bestTotal){bestTotal=tot;lump=l;lumpTax=itax(Math.max(0,(l-dcCtrl)/2))*1.021+Math.max(0,(l-dcCtrl)/2)*0.1;}
     }
   }
