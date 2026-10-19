@@ -550,7 +550,7 @@ function simulate(dcAge,penYrs,pubStart,pub,useNinchi,P0){
   const net=totalIncome-(totalTax+totalSoc);
   return {
     dcAge,penYrs,pubStart,pub,useNinchi,sameYear,lump,ann,
-    lumpTax,retTax,dcCtrl,totalTax,totalSoc,net,
+    lumpTax,retTax,dcCtrl,totalTax,totalSoc,net,finEx:gn.inDC,dcTotal,
     totalIncome,pubTotal,rate:(totalTax+totalSoc)/totalIncome*100,yd,iDeCoC
   };
 }
@@ -648,6 +648,18 @@ function startCalc(){
   setTimeout(processChunk,0);
 }
 
+function dcInstr(r){
+  const pct=r.dcTotal>0?r.lump/r.dcTotal*100:0;
+  const rest=r.dcTotal-r.lump;
+  const yr=r.dcAge+'歳';
+  let t=`一時金 <b>${fmt(r.lump)}万円</b>（DC残高の${ff(pct)}%）`;
+  if(rest>0.5){
+    t+=` ＋ 年金 <b>${fmt(rest)}万円分</b>を${r.penYrs}年で受取（年${fmt(r.ann)}万円＝月${ff(r.ann/12)}万円）`;
+    if(r.finEx>0.5)t+=`<br><span style="opacity:.75">運用益の精算は最終年に上乗せ（見込み約${fmt(r.finEx)}万円・一時所得）</span>`;
+  } else t+=`（全額一時金）`;
+  t+=`<br><span style="opacity:.75">前提：DC残高${fmt(r.dcTotal)}万円（${yr}受取時点）。管理会社が20%・40%など割合しか選べない場合は、最も近い割合を選び、一時金額を読み替えてください。</span>`;
+  return t;
+}
 function renderResults(top,total,P){
   const medals=['🥇','🥈','🥉'];
   let html=`<div class="inote">✓ ${total}パターン計算完了。手残りの多い順に表示しています。各カードをクリックすると詳細を展開します。</div>`;
@@ -689,6 +701,9 @@ function renderResults(top,total,P){
         <span class="rc-rate">${ff(r.rate)}%</span>
         <span class="rc-net">${fmt(r.net)}万円</span>
       </div>
+      <div style="margin:8px 0 10px;padding:8px 12px;border-radius:8px;background:var(--glight);border:1px solid rgba(26,107,74,.25);font-size:12px;line-height:1.7;color:var(--ink)">
+        <b>DC管理会社への指示内容</b>　${dcInstr(r)}
+      </div>
       <div class="rc-stats">
         <div class="rc-stat"><div class="rc-sl">生涯総収入</div><div class="rc-sv i">${fmt(r.totalIncome)}万円</div></div>
         <div class="rc-stat"><div class="rc-sl">税金合計</div><div class="rc-sv b">${fmt(r.totalTax)}万円</div></div>
@@ -702,7 +717,7 @@ function renderResults(top,total,P){
           <div class="rc-sl" style="margin-bottom:6px">受取設定の詳細</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px;font-size:11px">
             <div style="color:rgba(250,247,242,.6)">DC控除（実質）：<span style="color:var(--paper)">${dcCtrlLabel}</span></div>
-            <div style="color:rgba(250,247,242,.6)">最適一時金：<span style="color:var(--paper)">${fmt(r.lump)}万円</span></div>
+            <div style="color:rgba(250,247,242,.6)">DC一時金（指示額）：<span style="color:var(--paper)">${fmt(r.lump)}万円（${ff(r.lump/r.dcTotal*100)}%）</span></div>
             <div style="color:rgba(250,247,242,.6)">DC年金：<span style="color:var(--paper)">${fmt(r.ann)}万円/年×${r.penYrs}年</span></div>
             <div style="color:rgba(250,247,242,.6)">退職金税：<span style="color:var(--paper)">${fmt(r.retTax)}万円</span></div>
             <div style="color:rgba(250,247,242,.6)">DC一時金税：<span style="color:var(--paper)">${fmt(r.lumpTax)}万円</span></div>
