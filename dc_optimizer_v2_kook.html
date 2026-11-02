@@ -162,21 +162,21 @@ p{margin-bottom:1em;color:var(--ink2)}
   <div class="igrid">
     <div class="ibox">
       <div class="ibox-title">退職・DC情報</div>
-      <div class="irow"><label>退職金（万円・60歳）</label><input type="number" id="i-ret" value="1100"><span class="unit">万円</span></div>
+      <div class="irow"><label>退職金（万円・60歳）</label><input type="number" id="i-ret" value="1088"><span class="unit">万円</span></div>
       <div class="irow"><label>勤続年数（退職時）</label><input type="number" id="i-yrs" value="36"><span class="unit">年</span></div>
-      <div class="irow"><label>DC積立残高</label><input type="number" id="i-dc" value="5600"><span class="unit">万円</span></div>
+      <div class="irow"><label>DC積立残高</label><input type="number" id="i-dc" value="5500"><span class="unit">万円</span></div>
       <div class="irow"><label>国民年金 任意加入+iDeCo<br><small style="opacity:.6">60歳以降に国民年金の未加入期間がある方</small></label>
         <select id="i-ninchi">
           <option value="1">あり</option>
           <option value="0">なし</option>
         </select><span class="unit"></span>
       </div>
-      <div class="irow"><label>任意加入月数<br><small style="opacity:.6">学生期間の未加入等の月数<br>上限60ヶ月（5年）</small></label><input type="number" id="i-nmonths" value="0" min="0" max="60"><span class="unit">ヶ月</span></div>
+      <div class="irow"><label>任意加入月数<br><small style="opacity:.6">学生期間の未加入等の月数<br>上限60ヶ月（5年）</small></label><input type="number" id="i-nmonths" value="48" min="0" max="60"><span class="unit">ヶ月</span></div>
       <div class="irow"><label>国民年金 任意加入月額<br><small style="opacity:.6">令和8年度：17,920円</small></label><input type="number" id="i-nen" value="17920"><span class="unit">円/月</span></div>
     </div>
     <div class="ibox">
       <div class="ibox-title">公的年金</div>
-      <div class="irow"><label>本人年金（65歳時点）</label><input type="number" id="i-pub" value="230"><span class="unit">万円/年</span></div>
+      <div class="irow"><label>本人年金（65歳時点）</label><input type="number" id="i-pub" value="235"><span class="unit">万円/年</span></div>
       <div class="irow"><label>任意加入後の年金<br><small style="opacity:.6">自動計算：本人年金＋満額×任意加入月数÷480</small></label><input type="number" id="i-pub2" value="210" readonly><span class="unit">万円/年</span></div>
       <div class="irow"><label>老齢基礎年金 満額<br><small style="opacity:.6">令和8年度：847,296円（年度ごとに更新）</small></label><input type="number" id="i-kiso" value="847296"><span class="unit">円/年</span></div>
       <div class="irow"><label>任意加入後の年金を手入力する<br><small style="opacity:.6">ねんきん定期便の試算値を使う場合にチェック</small></label><input type="checkbox" id="i-pub2-manual" style="width:auto"><span class="unit"></span></div>
@@ -195,14 +195,15 @@ p{margin-bottom:1em;color:var(--ink2)}
     </div>
     <div class="ibox">
       <div class="ibox-title">社会保険料（月額・円）</div>
-      <div class="irow"><label>任意継続健保（60〜61歳）</label><input type="number" id="i-h1" value="36535"><span class="unit">円/月</span></div>
+      <div class="irow"><label>任意継続健保（60〜61歳）</label><input type="number" id="i-h1" value="56730"><span class="unit">円/月</span></div>
       <div class="irow"><label>65歳〜74歳の健保<br><small style="opacity:.6">退職者健保or国保</small></label>
         <select id="i-h3type">
           <option value="fixed">退職者健保（月額入力）</option>
           <option value="kokuho">国民健康保険（・自動）</option>
         </select><span class="unit"></span>
       </div>
-      <div class="irow"><label>退職者健保 月額</label><input type="number" id="i-h3" value="30000"><span class="unit">円/月</span></div>
+      <div class="irow"><label>退職者健保 月額（65歳未満）<br><small style="opacity:.6">受給開始〜64歳</small></label><input type="number" id="i-h3y" value="36500"><span class="unit">円/月</span></div>
+      <div class="irow"><label>退職者健保 月額（65〜74歳）</label><input type="number" id="i-h3" value="30500"><span class="unit">円/月</span></div>
       <div class="irow"><label>国民年金任意加入月額<br><small style="opacity:.6">令和8年度：17,920円</small></label><input type="number" id="i-nenkm" value="17920"><span class="unit">円/月</span></div>
       <div class="irow"><label>iDeCo掛金<br><small style="opacity:.6">DC受取開始まで拠出（DC残高に加算）</small></label><input type="number" id="i-ideco" value="5000"><span class="unit">円/月</span></div>
     </div>
@@ -383,7 +384,7 @@ function calcSoc(age,dcAge,penInc,dcAnn,useNinchi,P){
     h=nagareyamaKokuho(dcAnn||0,age,spSalNow,spAge,wSalNow);
   } else if(age<=74){
     if(P.h3type==='fixed'){
-      h=H3fixed;
+      h=age<65?(P.h3y>0?P.h3y:P.h3)*12/10000:H3fixed;
     } else {
       h=nagareyamaKokuho65(penInc,age,P.spSal65,P.spPen,spAge);
     }
@@ -574,7 +575,7 @@ function startCalc(){
     pub:gi('i-pub'),pub2:gi('i-pub2'),
     spDiff:gi('i-spdiff'),spPen:gi('i-sppen'),spSal:gi('i-spsal'),spSal65:gi('i-spsal65'),
     med:gi('i-med'),life:gi('i-life'),quake:gi('i-quake'),
-    h1:gi('i-h1'),h3:gi('i-h3'),h3type:gs('i-h3type'),
+    h1:gi('i-h1'),h3:gi('i-h3'),h3y:gi('i-h3y'),h3type:gs('i-h3type'),
     nenM:gi('i-nenkm'),endAge:gi('i-end')||90,
     yrs:gi('i-yrs')||36,work:gi('i-work'),wsal:gi('i-wsal'),wend:gi('i-wend')||65,wsoc:gi('i-wsal-soc'),wprev:gi('i-wprev')||50
   };
