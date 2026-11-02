@@ -512,7 +512,7 @@ function simulate(dcAge,penYrs,pubStart,pub,useNinchi,P0){
     // DC側の勤続年数への上乗せは、国民年金任意加入+iDeCo継続期間分のみ認められる
     // （専属FP・DC委託会社確認：任意加入期間中にiDeCoで運用継続していた期間に限り加算可）
     const nmonths=Math.min(gi('i-nmonths')||0,pubStart<65?(pubStart-60)*12:1e9);
-    const addYrs=useNinchi?Math.min(dcAge-60,nmonths/12):0;
+    const addYrs=(useNinchi&&gi('i-ideco')>0)?Math.min(dcAge-60,nmonths/12):0; // 勤続年数への上乗せは、iDeCo掛金を拠出する場合のみ
     const dcYrs=P.yrs+addYrs;
     const dcCtrlFull=retCtrl(dcYrs);
     const mCtrl=retCtrl(mimashi(P.ret));
@@ -681,7 +681,7 @@ function renderResults(top,total,P){
     const medal=i<3?medals[i]:`${i+1}位`;
     const pubLabel=r.pubStart<65?`${r.pubStart}歳繰り上げ（${((65-r.pubStart)*4.8).toFixed(1)}%減）`:`65歳通常受給`;
     const ninchiMonths=gi('i-nmonths')||0;
-    const ninchiLabel=r.useNinchi?(r.dcAge===60?`任意加入${ninchiMonths}ヶ月のみ`:`任意加入${ninchiMonths}ヶ月+iDeCo`):'任意加入なし';
+    const ninchiLabel=r.useNinchi?(r.dcAge===60?`任意加入${ninchiMonths}ヶ月のみ`:(gi('i-ideco')>0?`任意加入${ninchiMonths}ヶ月+iDeCo`:`任意加入${ninchiMonths}ヶ月（iDeCoなし）`)):'任意加入なし';
     const dcCtrlLabel=r.sameYear?`${fmt(r.dcCtrl)}万（合算）`:`${fmt(r.dcCtrl)}万（分離）`;
     const title=`DC${r.dcAge}歳受取・${r.penYrs}年年金 ／ 公的年金${pubLabel} ／ ${ninchiLabel}`;
 
