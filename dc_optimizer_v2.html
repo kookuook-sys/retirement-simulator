@@ -392,7 +392,7 @@ function calcSoc(age,dcAge,penInc,dcAnn,useNinchi,P){
   if(useNinchi){
     // 任意加入は合計nenMonthsヶ月（デフォルト54ヶ月）
     // 60〜63歳：12ヶ月/年、64歳：残り月数
-    const ninchiMonths=gi('i-nmonths')||0;
+    const ninchiMonths=Math.min(gi('i-nmonths')||0,(P.tokuStart||65)<65?Math.round(((P.tokuStart||65)-60)*12):1e9);
     const fullYears=Math.floor(ninchiMonths/12);   // 完全年数（4年）
     const remainMonths=ninchiMonths%12;             // 残り月数（6ヶ月）
     const agesSince60=age-60;
@@ -420,8 +420,9 @@ function annualTax(age,dcAnn,dcAge,pubInc,P,useNinchi,oneTime){
   if(age>=65){
     const tot=dcAnn+pubInc;
     penInc=Math.max(0,tot-pCtrl65(tot));
-  } else if(dcAnn>0){
-    penInc=Math.max(0,dcAnn-pCtrl64(dcAnn));
+  } else {
+    const tot0=dcAnn+pubInc; // 繰上げ受給した公的年金も雑所得（65歳未満の公的年金等控除）
+    if(tot0>0)penInc=Math.max(0,tot0-pCtrl64(tot0));
   }
   const oneInc=oneTime>0?Math.max(0,(oneTime-50)/2):0; // 一時所得：特別控除50万円、2分の1を総合課税
   penInc+=oneInc;
@@ -504,7 +505,7 @@ function simulate(dcAge,penYrs,pubStart,pub,useNinchi,P0){
     // 分離受取
     // DC側の勤続年数への上乗せは、国民年金任意加入+iDeCo継続期間分のみ認められる
     // （専属FP・DC委託会社確認：任意加入期間中にiDeCoで運用継続していた期間に限り加算可）
-    const nmonths=gi('i-nmonths')||0;
+    const nmonths=Math.min(gi('i-nmonths')||0,pubStart<65?(pubStart-60)*12:1e9);
     const addYrs=useNinchi?Math.min(dcAge-60,nmonths/12):0;
     const dcYrs=P.yrs+addYrs;
     const dcCtrlFull=retCtrl(dcYrs);
@@ -614,8 +615,9 @@ function startCalc(){
         const pub=P.pub*(1-pubReduce);
         scenarios.push({dcAge,penYrs,pubStart,pub,useNinchi:false});
         // 任意加入あり：DC受取は60〜65歳のすべて（60歳受取=任意加入のみ／61歳以降=iDeCo継続＋控除上乗せは任意加入月数まで）
-        if(ninchi&&ninchiMonthsIn>0&&P.work!==1){
-          const pub2=P.pub2*(1-pubReduce);
+        const effM=pubStart<65?Math.min(ninchiMonthsIn,(pubStart-60)*12):ninchiMonthsIn; // 繰上げ後は任意加入不可
+        if(ninchi&&effM>0&&P.work!==1){
+          const pub2=(P.pub+(P.pub2-P.pub)*effM/ninchiMonthsIn)*(1-pubReduce);
           scenarios.push({dcAge,penYrs,pubStart,pub:pub2,useNinchi:true});
         }
       }
